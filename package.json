@@ -1,0 +1,9 @@
+{
+  "name": "backend-te-mate",
+  "version": "1.0.0",
+  "description": "Backend application of Te mate game",
+  "main": "index.js",
+  "repository": "git@github.com:sebacarrasco/backend-te-mate.git",
+  "author": "sebacarrasco <sebacarrasco@uc.cl>",
+  "license": "MIT"
+}
