@@ -5,5 +5,32 @@
   "main": "index.js",
   "repository": "git@github.com:sebacarrasco/backend-te-mate.git",
   "author": "sebacarrasco <sebacarrasco@uc.cl>",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "db:reset": "yarn sequelize db:migrate:undo:all && yarn sequelize db:migrate && yarn sequelize db:seed:all",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "lint": "eslint --ext .js src",
+    "lint-fix": "eslint --ext .js src --fix"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^7.6.0",
+    "bcrypt": "^5.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.2",
+    "express-jwt": "^6.1.0",
+    "express-validator": "^6.14.0",
+    "jsonwebtoken": "^8.5.1",
+    "pg": "^8.7.1",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.12.0",
+    "sequelize-cli": "^6.3.0",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.5.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.3"
+  }
 }
