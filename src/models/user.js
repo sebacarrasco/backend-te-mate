@@ -14,6 +14,7 @@ module.exports = (sequelize, DataTypes) => {
         hooks: true,
       });
       this.hasMany(models.Game, { as: 'gameOwned', foreignKey: { allowNull: false, name: 'ownerId' } });
+      this.hasMany(models.Challenge, { foreignKey: { name: 'userId', allowNull: false }, onDelete: 'cascade', hooks: true });
     }
 
     checkPassword(password) {

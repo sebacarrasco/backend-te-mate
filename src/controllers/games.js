@@ -22,6 +22,7 @@ router.get('/', async (req, res) => {
 router.post('/', [
   check('userIds', 'userIds must be an array of uuids').isArray(),
   check('userIds.*', 'userIds must be an array of uuids').isUUID(),
+  check('name', 'name should be a string').isString(),
   check('name', 'name should be at least 2 characters long').isLength({ min: 2 }),
   fieldValidator,
 ], findUsers, async (req, res) => {
@@ -32,7 +33,6 @@ router.post('/', [
   try {
     await game.addParticipant(req.users);
   } catch (e) {
-    console.log(e)
     return res.status(500).send();
   }
   return res.status(201).send({ game });
