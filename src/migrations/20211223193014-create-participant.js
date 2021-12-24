@@ -10,6 +10,7 @@ module.exports = {
       gameId: {
         allowNull: false,
         type: Sequelize.INTEGER,
+        onDelete: 'CASCADE',
         references: {
           model: 'Games',
           key: 'id',
@@ -18,8 +19,18 @@ module.exports = {
       userId: {
         allowNull: false,
         type: Sequelize.UUID,
+        onDelete: 'CASCADE',
         references: {
           model: 'Users',
+          key: 'id',
+        },
+      },
+      participantId: {
+        allowNull: true,
+        type: Sequelize.INTEGER,
+        onDelete: 'CASCADE',
+        references: {
+          model: 'Participants',
           key: 'id',
         },
       },

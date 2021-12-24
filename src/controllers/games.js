@@ -3,7 +3,7 @@ const jwt = require('express-jwt');
 const { check } = require('express-validator');
 const { setCurrentUser } = require('../middlewares/auth');
 const { fieldValidator } = require('../middlewares/field-validator');
-const { findUsers } = require('../middlewares/games');
+const { findUsers, findGame, checkOwner, checkName, checkGameParams, checkStatus } = require('../middlewares/games');
 
 const router = express.Router();
 
@@ -36,6 +36,33 @@ router.post('/', [
     return res.status(500).send();
   }
   return res.status(201).send({ game });
+});
+
+router.patch('/:gameId', [
+  check('gameId', 'gameId must be an integer').isInt(),
+  fieldValidator,
+], findGame, checkOwner, checkGameParams, checkName, checkStatus, async (req, res) => {
+  try {
+    req.game.name = req.body.name || req.game.name;
+    req.game.status = req.body.status || req.game.status;
+    await req.game.save();
+    return res.status(200).send({ game: req.game });
+  } catch (e) {
+    return res.status(500).send();
+  }
+});
+
+router.delete('/:gameId', [
+  check('gameId', 'gameId must be an integer').isInt(),
+  fieldValidator,
+], findGame, checkOwner, async (req, res) => {
+  try {
+    await req.game.destroy();
+    return res.status(204).send();
+  } catch (e) {
+    console.log(e)
+    return res.status(500).send();
+  }
 });
 
 module.exports = router;

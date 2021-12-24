@@ -2,7 +2,8 @@ const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Participant extends Model {
-    static associate() {
+    static associate(models) {
+      this.hasOne(models.Challenge, { foreignKey: { name: 'participantId', allowNull: true }, onDelete: 'cascade', hooks: true });
     }
   }
   Participant.init({
