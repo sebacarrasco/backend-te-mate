@@ -1,11 +1,12 @@
 const express = require('express');
 const { check } = require('express-validator');
 const jwtGenerator = require('jsonwebtoken');
-const { emailIsUnique, setCurrentUserURLToken } = require('../middlewares/auth');
+const { emailIsUnique, setCurrentUserURLToken, emailToLowerCase } = require('../middlewares/auth');
 const { fieldValidator } = require('../middlewares/field-validator');
 const sendConfirmAccountEmail = require('../mailers/confirm-account');
 
 const router = express.Router();
+router.use(emailToLowerCase);
 
 router.post('/register', [
   check('password', 'password should be at least 6 characters long').isLength({ min: 6 }),

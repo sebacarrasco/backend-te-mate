@@ -6,13 +6,14 @@ const saltRounds = parseInt(process.env.PASSWORD_SALT_ROUNDS, 10);
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
-    static associate() {
-      // define association here
+    static associate(models) {
+      this.belongsToMany(models.Game, {
+        through: models.Participant,
+        foreignKey: { allowNull: false, name: 'userId' },
+        onDelete: 'cascade',
+        hooks: true,
+      });
+      this.hasMany(models.Game, { as: 'gameOwned', foreignKey: { allowNull: false, name: 'ownerId' } });
     }
 
     checkPassword(password) {
@@ -53,17 +54,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
-      validate: {
-        notEmpty: true,
-      },
     },
     kills: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
-      validate: {
-        notEmpty: true,
-      },
     },
   }, {
     sequelize,
