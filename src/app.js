@@ -26,6 +26,6 @@ app.use((err, req, res, next) => {
   return res.status(err.status || 500).send();
 });
 
-app.listen(process.env.APP_PORT, () => {
-  console.log(`Running on localhost: ${process.env.APP_PORT}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Running on localhost: ${process.env.PORT}`);
 });
