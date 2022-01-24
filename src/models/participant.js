@@ -4,6 +4,18 @@ module.exports = (sequelize, DataTypes) => {
   class Participant extends Model {
     static associate(models) {
       this.hasOne(models.Challenge, { foreignKey: { name: 'participantId', allowNull: true }, onDelete: 'cascade', hooks: true });
+      this.hasOne(
+        models.Participant,
+        {
+          as: 'victim', foreignKey: { name: 'participantKillerId', allowNull: true }, onDelete: 'cascade', hooks: true,
+        },
+      );
+      this.belongsTo(
+        models.Participant,
+        {
+          as: 'Killer', foreignKey: { name: 'participantKillerId', allowNull: true }, onDelete: 'cascade', hooks: true,
+        },
+      );
     }
   }
   Participant.init({

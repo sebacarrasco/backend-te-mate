@@ -15,6 +15,15 @@ module.exports = {
           key: 'id',
         },
       },
+      participantId: {
+        allowNull: true,
+        type: Sequelize.INTEGER,
+        onDelete: 'CASCADE',
+        references: {
+          model: 'Participants',
+          key: 'id',
+        },
+      },
       description: {
         allowNull: false,
         type: Sequelize.STRING,

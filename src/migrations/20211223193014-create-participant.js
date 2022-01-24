@@ -25,7 +25,7 @@ module.exports = {
           key: 'id',
         },
       },
-      participantId: {
+      participantKillerId: {
         allowNull: true,
         type: Sequelize.INTEGER,
         onDelete: 'CASCADE',

@@ -6,7 +6,6 @@ module.exports = function sendConfirmAccountEmail(user, token) {
   const { firstName, lastName, email } = user;
   const emailData = {
     from: process.env.SENDGRID_EMAIL,
-    subject: 'Welcome to Te maté!',
     personalizations: [{
       to: {
         email,

@@ -1,7 +1,7 @@
 const { Op } = require('sequelize');
 
 const findUsers = async (req, res, next) => {
-  if (req.body.userIds.length === 0) { return res.status(400).send({ message: 'userIds cannot be empty array ' }); }
+  if (req.body.userIds.length < 2) { return res.status(406).send({ message: 'There should be at least 2 other participants' }); }
   const userIds = [...req.body.userIds, req.currentUser.id];
   try {
     const users = await req.orm.User.findAll({
@@ -22,10 +22,27 @@ const findUsers = async (req, res, next) => {
 
 const findGame = async (req, res, next) => {
   try {
-    req.game = await req.orm.Game.findByPk(req.params.gameId);
+    req.game = await req.orm.Game.findByPk(req.params.gameId, {
+      include: [
+        {
+          model: req.orm.User, as: 'owner', attributes: ['id', 'firstName', 'lastName', 'email', 'kills'],
+        },
+        {
+          model: req.orm.User,
+          as: 'participants',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'kills'],
+          through: { attributes: ['id', 'alive', 'kills', 'gameId', 'userId'] },
+          include: { model: req.orm.Challenge, where: { selected: { [Op.eq]: false } } },
+        },
+      ],
+    });
     if (!req.game) { return res.status(404).send({ message: 'Game not found' }); }
+    if (!req.game.participants.map((p) => p.id).includes(req.currentUser.id)) {
+      return res.status(401).send({ message: 'You are not part of this game' });
+    }
     return next();
   } catch (e) {
+    console.log(e);
     return res.status(500).send();
   }
 };
@@ -84,6 +101,31 @@ const checkStatus = async (req, res, next) => {
   return next();
 };
 
+const findVictim = async (req, res, next) => {
+  if (req.game.status === 'in progress') {
+    try {
+      const currentParticipant = req.game.participants.filter(
+        (p) => p.id === req.currentUser.id,
+      )[0];
+      const victimParticipant = await req.orm.Participant.findOne({
+        where: { participantKillerId: currentParticipant.Participant.id },
+        attributes: ['id', 'userId'],
+      });
+      req.victimUser = await req.orm.User.findByPk(victimParticipant.userId, {
+        attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt', 'kills'],
+      });
+      req.challenge = await req.orm.Challenge.findOne({
+        where: { participantId: victimParticipant.id }, attributes: ['description'],
+      });
+      return next();
+    } catch (e) {
+      console.log(e);
+      return res.status(500).send();
+    }
+  }
+  return next();
+};
+
 module.exports = {
   findUsers,
   findGame,
@@ -91,4 +133,5 @@ module.exports = {
   checkGameParams,
   checkName,
   checkStatus,
+  findVictim,
 };

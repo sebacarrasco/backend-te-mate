@@ -50,7 +50,7 @@ router.post('/login', [
     const token = jwtGenerator.sign(
       { sub: user.id },
       process.env.JWT_SECRET,
-      { expiresIn: '7 days' },
+      { expiresIn: '24 h' },
     );
     return res.status(201).send({ access_token: token, tokenType: 'Bearer' });
   } catch (error) {

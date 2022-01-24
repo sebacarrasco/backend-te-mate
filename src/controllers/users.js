@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
   try {
     const users = await req.orm.User.findAll({
       attributes: ['id', 'firstName', 'lastName', 'email', 'kills', 'createdAt'],
+      where: { active: true },
     });
     return res.status(200).send({ users });
   } catch (e) {
@@ -28,13 +29,14 @@ router.get('/:userId', [
 
 router.get('/:userId/challenges', [
   check('userId', 'userId must be an uuid').isUUID(),
-  fieldValidator, findUser, challengeOwnerNotCurrentUser,
-], async (req, res) => {
+  fieldValidator,
+], findUser, challengeOwnerNotCurrentUser, async (req, res) => {
   try {
     const challenges = await req.orm.Challenge.findAll({
       where: { userId: req.user.id },
+      order: [['updatedAt', 'DESC']],
     });
-    return res.status(200).send({ user: req.user, challenges });
+    return res.status(200).send({ user: { ...req.user.toJSON(), challenges } });
   } catch (e) {
     return res.status(500).send();
   }

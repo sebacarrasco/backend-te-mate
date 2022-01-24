@@ -23,6 +23,7 @@ router.post('/', [
     });
     return res.status(201).send({ challenge });
   } catch (e) {
+    console.log(e);
     return res.status(500).send();
   }
 });
