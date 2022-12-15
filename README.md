@@ -13,10 +13,5 @@
 ## Database
 The following command undo all migrations, do all migrations and seed the database: `yarn db:reset`
 
-## Production migrations
-To migrate the railway database:
-- `railway link` and select `"Te mate"`
-- `railway run yarn sequelize-cli db:migrate` this has to be run after `yarn install` locally.
-
 ## Docs
 https://documenter.getpostman.com/view/11756316/UVXkoasU
