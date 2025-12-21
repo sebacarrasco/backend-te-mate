@@ -14,15 +14,6 @@ const router = express.Router();
 router.use(jwt({ secret: process.env.JWT_SECRET, requestProperty: 'authData', algorithms: ['HS256'] }));
 router.use(setCurrentUser);
 
-// router.get('/', async (req, res) => {
-//   try {
-//     const games = await req.orm.Game.findAll();
-//     return res.status(200).send({ games });
-//   } catch (e) {
-//     return res.status(500).send();
-//   }
-// });
-
 router.get('/', async (req, res) => {
   console.log(`Fetching games for user ${req.currentUser.id}`);
   try {

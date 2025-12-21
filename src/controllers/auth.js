@@ -60,7 +60,7 @@ router.post('/login', [
     const token = jwtGenerator.sign(
       { sub: user.id },
       process.env.JWT_SECRET,
-      { expiresIn: '24 h' },
+      { expiresIn: process.env.JWT_EXPIRATION_TIME || '14d' },
     );
     console.log(`Login successful for ${email}`);
     return res.status(201).send({ access_token: token, tokenType: 'Bearer' });
