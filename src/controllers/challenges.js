@@ -16,14 +16,16 @@ router.post('/', [
   check('description', 'description should be at least 5 characters long').isLength({ min: 5 }),
   fieldValidator,
 ], findUser, challengeOwnerNotCurrentUser, async (req, res) => {
+  console.log(`Creating challenge for user ${req.user.id}`);
   try {
     const challenge = await req.orm.Challenge.create({
       userId: req.user.id,
       description: req.body.description,
     });
+    console.log(`Challenge ${challenge.id} created successfully for user ${req.user.id}`);
     return res.status(201).send({ challenge });
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.error(`Error creating challenge - ${error.message}`);
     return res.status(500).send();
   }
 });
@@ -34,11 +36,14 @@ router.patch('/:challengeId', [
   check('description', 'description should be at least 5 characters long').isLength({ min: 5 }),
   fieldValidator,
 ], findChallenge, challengeOwnerNotCurrentUser, async (req, res) => {
+  console.log(`Updating challenge ${req.params.challengeId}`);
   try {
     req.challenge.description = req.body.description;
     await req.challenge.save();
+    console.log(`Challenge ${req.challenge.id} updated successfully`);
     return res.status(200).send({ challenge: req.challenge });
-  } catch (e) {
+  } catch (error) {
+    console.error(`Error updating challenge ${req.params.challengeId} - ${error.message}`);
     return res.status(500).send();
   }
 });
@@ -47,10 +52,13 @@ router.delete('/:challengeId', [
   check('challengeId', 'challengeId must be an integer').isInt(),
   fieldValidator,
 ], findChallenge, challengeOwnerNotCurrentUser, async (req, res) => {
+  console.log(`Deleting challenge ${req.params.challengeId}`);
   try {
     await req.challenge.destroy();
+    console.log(`Challenge ${req.params.challengeId} deleted successfully`);
     return res.status(204).send();
-  } catch (e) {
+  } catch (error) {
+    console.error(`Error deleting challenge ${req.params.challengeId} - ${error.message}`);
     return res.status(500).send();
   }
 });
