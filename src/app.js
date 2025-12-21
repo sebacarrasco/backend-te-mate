@@ -21,7 +21,6 @@ app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
   if (err.name === 'UnauthorizedError') { return res.status(401).send({ message: 'Invalid Token' }); }
   return res.status(err.status || 500).send();
 });
