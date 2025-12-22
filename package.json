@@ -10,8 +10,13 @@
     "db:reset": "yarn sequelize db:migrate:undo:all && yarn sequelize db:migrate && yarn sequelize db:seed:all",
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "lint": "eslint --ext .js src",
-    "lint-fix": "eslint --ext .js src --fix"
+    "lint": "eslint --ext .js tests src",
+    "lint-fix": "eslint --ext .js src tests --fix",
+    "test": "NODE_ENV=test jest",
+    "test:unit": "NODE_ENV=test jest tests/unit",
+    "test:integration": "NODE_ENV=test jest tests/integration",
+    "test:watch": "NODE_ENV=test jest --watch",
+    "test:coverage": "NODE_ENV=test jest --coverage"
   },
   "dependencies": {
     "@sendgrid/mail": "^7.6.0",
