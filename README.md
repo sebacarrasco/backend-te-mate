@@ -4,6 +4,7 @@
 - `cp .env.example .env`.
 - Complete the environment variables in the `.env` file.
 - `yarn install`.
+- `yarn db:reset` to set up the database.
 - `yarn start` for production, `yarn dev` for development.
 
 ## Linting
@@ -11,7 +12,12 @@
 - Linting and fix: `yarn lint-fix`.
 
 ## Testing
-This project uses Jest for testing. Make sure you have the test database (`te_mate_test`) created before running tests.
+This project uses Jest for testing. Make sure you have the test database (`te_mate_test`) created and run migrations before running tests:
+
+```bash
+# Run migrations for test database (only needed once or after schema changes)
+npx sequelize-cli db:migrate --env test
+```
 
 ```bash
 # Run all tests
