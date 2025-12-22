@@ -10,8 +10,13 @@
     "db:reset": "yarn sequelize db:migrate:undo:all && yarn sequelize db:migrate && yarn sequelize db:seed:all",
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "lint": "eslint --ext .js src",
-    "lint-fix": "eslint --ext .js src --fix"
+    "lint": "eslint --ext .js tests src",
+    "lint-fix": "eslint --ext .js src tests --fix",
+    "test": "NODE_ENV=test jest",
+    "test:unit": "NODE_ENV=test jest tests/unit",
+    "test:integration": "NODE_ENV=test jest tests/integration",
+    "test:watch": "NODE_ENV=test jest --watch",
+    "test:coverage": "NODE_ENV=test jest --coverage"
   },
   "dependencies": {
     "@sendgrid/mail": "^7.6.0",
@@ -31,7 +36,9 @@
   "devDependencies": {
     "eslint": "^8.7.0",
     "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.25.3"
+    "eslint-plugin-import": "^2.25.3",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
