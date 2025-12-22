@@ -1,0 +1,60 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: te_mate_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run migrations
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: te_mate_test
+          DB_DIALECT: postgres
+        run: npx sequelize-cli db:migrate --env test
+
+      - name: Run tests
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: te_mate_test
+          DB_DIALECT: postgres
+          JWT_SECRET: test-jwt-secret-for-ci
+          PASSWORD_SALT_ROUNDS: '1'
+        run: yarn test
+
