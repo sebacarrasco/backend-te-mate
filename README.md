@@ -10,6 +10,26 @@
 - Just linting: `yarn lint`.
 - Linting and fix: `yarn lint-fix`.
 
+## Testing
+This project uses Jest for testing. Make sure you have the test database (`te_mate_test`) created before running tests.
+
+```bash
+# Run all tests
+yarn test
+
+# Run only unit tests
+yarn test:unit
+
+# Run only integration tests
+yarn test:integration
+
+# Run tests in watch mode
+yarn test:watch
+
+# Run tests with coverage report
+yarn test:coverage
+```
+
 ## Database
 The following command undo all migrations, do all migrations and seed the database: `yarn db:reset`
 
