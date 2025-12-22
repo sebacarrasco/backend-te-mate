@@ -1,9 +1,9 @@
 const express = require('express');
 const { check } = require('express-validator');
-const jwtGenerator = require('jsonwebtoken');
 const { emailIsUnique, setCurrentUserURLToken, emailToLowerCase } = require('../middlewares/auth');
 const { fieldValidator } = require('../middlewares/field-validator');
 const sendConfirmAccountEmail = require('../mailers/confirm-account');
+const { generateToken } = require('../utils/jwt');
 
 const router = express.Router();
 router.use(emailToLowerCase);
@@ -24,11 +24,7 @@ router.post('/register', [
       },
     });
     console.log(`User with email ${user.email} created with id ${user.id}`);
-    const token = jwtGenerator.sign(
-      { sub: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' },
-    );
+    const token = generateToken(user.id);
     await sendConfirmAccountEmail(user, token);
     console.log(`Confirmation email sent to ${user.email}`);
     return res.status(201).send({ message: 'User was successfully created' });
@@ -57,11 +53,7 @@ router.post('/login', [
   }
 
   try {
-    const token = jwtGenerator.sign(
-      { sub: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRATION_TIME || '14d' },
-    );
+    const token = generateToken(user.id);
     console.log(`Login successful for ${email}`);
     return res.status(201).send({ access_token: token, tokenType: 'Bearer' });
   } catch (error) {
