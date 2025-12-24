@@ -46,7 +46,14 @@ jobs:
           DB_DIALECT: postgres
         run: npx sequelize-cli db:migrate --env test
 
-      - name: Run tests
+      - name: Run unit tests
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-ci
+          PASSWORD_SALT_ROUNDS: '1'
+        run: yarn test:unit
+
+      - name: Run integration tests
         env:
           NODE_ENV: test
           DB_HOST: localhost
@@ -56,5 +63,5 @@ jobs:
           DB_DIALECT: postgres
           JWT_SECRET: test-jwt-secret-for-ci
           PASSWORD_SALT_ROUNDS: '1'
-        run: yarn test
+        run: yarn test:integration
 

@@ -89,17 +89,17 @@ router.patch('/:gameId', [
       req.game.status = 'in progress';
       [, emailsInfo] = results;
       console.log(`Game ${req.game.id} started - challenges assigned to ${emailsInfo.length} participants`);
-    } else if (req.game.status === 'in progress' && req.body.status === 'completed') {
-      console.log(`Completing game ${req.game.id}`);
-      req.game.status = req.body.status;
     }
     await req.game.save();
     console.log(`Game ${req.game.id} updated successfully`);
     const { participants, ...rest } = req.game.toJSON();
     res.status(200).send({ game: rest });
-    return await Promise.all(emailsInfo.map(async (e) => {
-      await sendGameStartedEmail(req.game, e.killer, e.participant, e.challengeDescription);
-    }));
+    if (emailsInfo) {
+      return Promise.all(emailsInfo.map(async (e) => {
+        await sendGameStartedEmail(req.game, e.killer, e.participant, e.challengeDescription);
+      }));
+    }
+    return null;
   } catch (error) {
     console.error(`Error updating game ${req.params.gameId} - ${error.message}`);
     return res.status(500).send();
