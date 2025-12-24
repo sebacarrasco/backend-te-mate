@@ -12,9 +12,9 @@
     "dev": "nodemon src/app.js",
     "lint": "eslint --ext .js tests src",
     "lint-fix": "eslint --ext .js src tests --fix",
-    "test": "NODE_ENV=test jest",
+    "test": "NODE_ENV=test jest --runInBand",
     "test:unit": "NODE_ENV=test jest tests/unit",
-    "test:integration": "NODE_ENV=test jest tests/integration",
+    "test:integration": "NODE_ENV=test jest tests/integration --runInBand",
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage"
   },
