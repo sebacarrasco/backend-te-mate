@@ -19,31 +19,53 @@ const emailIsUnique = async (req, res, next) => {
 
 const setCurrentUserURLToken = async (req, res, next) => {
   console.log('Verifying URL token');
+  const redirectToInvalid = () => res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}invalid`);
+
+  let sub;
   try {
-    const { sub } = await jwtGenerator.verify(req.params.token, process.env.JWT_SECRET);
-    console.log(`Token verified, looking up user with id ${sub}`);
-    req.currentUser = await req.orm.User.findByPk(sub);
-    if (req.currentUser === null) { throw new Error('User not found'); }
-    if (req.currentUser.active) { throw new Error('User is already active'); }
-    return next();
+    ({ sub } = jwtGenerator.verify(req.params.token, process.env.JWT_SECRET));
   } catch (error) {
     console.log(`Token verification failed - ${error.message}`);
-    return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}invalid`);
+    return redirectToInvalid();
   }
+
+  console.log(`Token verified, looking up user with id ${sub}`);
+  req.currentUser = await req.orm.User.findByPk(sub);
+
+  if (req.currentUser === null) {
+    console.log('User not found');
+    return redirectToInvalid();
+  }
+  if (req.currentUser.active) {
+    console.log('User is already active');
+    return redirectToInvalid();
+  }
+
+  return next();
 };
 
 const setCurrentUser = async (req, res, next) => {
-  try {
-    const { authData: { sub } } = req;
-    console.log(`Looking up user with id ${sub}`);
-    req.currentUser = await req.orm.User.findByPk(sub);
-    if (req.currentUser === null) { throw new Error('User not found'); }
-    if (!req.currentUser.active) { throw new Error('User is not active'); }
-    return next();
-  } catch (error) {
-    console.log(`Authentication failed - ${error.message}`);
-    return res.status(401).send({ message: 'Invalid token' });
+  const respondWithInvalidToken = () => res.status(401).send({ message: 'Invalid token' });
+
+  const sub = req.authData?.sub;
+  if (!sub) {
+    console.log('Authentication failed - no sub in authData');
+    return respondWithInvalidToken();
   }
+
+  console.log(`Looking up user with id ${sub}`);
+  req.currentUser = await req.orm.User.findByPk(sub);
+
+  if (req.currentUser === null) {
+    console.log('Authentication failed - user not found');
+    return respondWithInvalidToken();
+  }
+  if (!req.currentUser.active) {
+    console.log('Authentication failed - user is not active');
+    return respondWithInvalidToken();
+  }
+
+  return next();
 };
 
 module.exports = {

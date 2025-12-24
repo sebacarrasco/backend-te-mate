@@ -16,17 +16,12 @@ router.use(setCurrentUser);
 
 router.get('/', async (req, res) => {
   console.log(`Fetching games for user ${req.currentUser.id}`);
-  try {
-    const games = await req.currentUser.getGames({
-      joinTableAttributes: ['alive'],
-      order: [['updatedAt', 'DESC']],
-    });
-    console.log(`Found ${games.length} games for user ${req.currentUser.id}`);
-    return res.status(200).send({ games });
-  } catch (error) {
-    console.error(`Error fetching games - ${error.message}`);
-    return res.status(500).send();
-  }
+  const games = await req.currentUser.getGames({
+    joinTableAttributes: ['alive'],
+    order: [['updatedAt', 'DESC']],
+  });
+  console.log(`Found ${games.length} games for user ${req.currentUser.id}`);
+  return res.status(200).send({ games });
 });
 
 router.get('/:gameId', [
@@ -61,13 +56,8 @@ router.post('/', [
     ownerId: req.currentUser.id,
     name: req.body.name,
   });
-  try {
-    await game.addParticipants(req.users);
-    console.log(`Game ${game.id} created successfully`);
-  } catch (error) {
-    console.error(`Error adding participants to game - ${error.message}`);
-    return res.status(500).send();
-  }
+  await game.addParticipants(req.users);
+  console.log(`Game ${game.id} created successfully`);
   return res.status(201).send({ game });
 });
 
@@ -76,34 +66,29 @@ router.patch('/:gameId', [
   fieldValidator,
 ], findGame, checkOwner, checkGameParams, checkName, checkStatus, async (req, res) => {
   console.log(`Updating game ${req.params.gameId}`);
-  try {
-    let emailsInfo;
-    req.game.name = req.body.name || req.game.name;
-    if (req.game.status === 'setup' && req.body.status === 'in progress') {
-      console.log(`Starting game ${req.game.id} - assigning challenges`);
-      const results = await assignChallenges(req.game);
-      if (!results[0]) {
-        console.log('Cannot start game - not every participant has 2 or more challenges');
-        return res.status(406).send({ message: 'Not every participant has 2 or more challenges' });
-      }
-      req.game.status = 'in progress';
-      [, emailsInfo] = results;
-      console.log(`Game ${req.game.id} started - challenges assigned to ${emailsInfo.length} participants`);
+  let emailsInfo;
+  req.game.name = req.body.name || req.game.name;
+  if (req.game.status === 'setup' && req.body.status === 'in progress') {
+    console.log(`Starting game ${req.game.id} - assigning challenges`);
+    const results = await assignChallenges(req.game);
+    if (!results[0]) {
+      console.log('Cannot start game - not every participant has 2 or more challenges');
+      return res.status(406).send({ message: 'Not every participant has 2 or more challenges' });
     }
-    await req.game.save();
-    console.log(`Game ${req.game.id} updated successfully`);
-    const { participants, ...rest } = req.game.toJSON();
-    res.status(200).send({ game: rest });
-    if (emailsInfo) {
-      return Promise.all(emailsInfo.map(async (e) => {
-        await sendGameStartedEmail(req.game, e.killer, e.participant, e.challengeDescription);
-      }));
-    }
-    return null;
-  } catch (error) {
-    console.error(`Error updating game ${req.params.gameId} - ${error.message}`);
-    return res.status(500).send();
+    req.game.status = 'in progress';
+    [, emailsInfo] = results;
+    console.log(`Game ${req.game.id} started - challenges assigned to ${emailsInfo.length} participants`);
   }
+  await req.game.save();
+  console.log(`Game ${req.game.id} updated successfully`);
+  const { participants, ...rest } = req.game.toJSON();
+  res.status(200).send({ game: rest });
+  if (emailsInfo) {
+    return Promise.all(emailsInfo.map(async (e) => {
+      await sendGameStartedEmail(req.game, e.killer, e.participant, e.challengeDescription);
+    }));
+  }
+  return null;
 });
 
 router.delete('/:gameId', [
@@ -111,14 +96,9 @@ router.delete('/:gameId', [
   fieldValidator,
 ], findGame, checkOwner, async (req, res) => {
   console.log(`Deleting game ${req.params.gameId}`);
-  try {
-    await req.game.destroy();
-    console.log(`Game ${req.params.gameId} deleted successfully`);
-    return res.status(204).send();
-  } catch (error) {
-    console.error(`Error deleting game ${req.params.gameId} - ${error.message}`);
-    return res.status(500).send();
-  }
+  await req.game.destroy();
+  console.log(`Game ${req.params.gameId} deleted successfully`);
+  return res.status(204).send();
 });
 
 module.exports = router;
