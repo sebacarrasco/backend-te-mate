@@ -1,7 +1,7 @@
 const jwtGenerator = require('jsonwebtoken');
 
 const emailToLowerCase = (req, res, next) => {
-  if (req.body.email) {
+  if (req.body?.email) {
     req.body.email = req.body.email.toLowerCase();
   }
   return next();
