@@ -1,9 +1,9 @@
 module.exports = {
   testEnvironment: 'node',
   testMatch: [
-    '**/tests/**/*.test.js',
+    '**/tests/**/*.test.ts',
   ],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   verbose: true,
   forceExit: true,
   clearMocks: true,
@@ -11,24 +11,36 @@ module.exports = {
   restoreMocks: true,
   testTimeout: 30000,
   collectCoverageFrom: [
-    'src/**/*.js',
+    'src/**/*.ts',
     '!src/migrations/**',
     '!src/seeds/**',
   ],
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest',
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   // Run integration tests sequentially to avoid database race conditions
   projects: [
     {
       displayName: 'unit',
-      testMatch: ['<rootDir>/tests/unit/**/*.test.js'],
-      setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+      testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+      transform: {
+        '^.+\\.tsx?$': 'ts-jest',
+      },
+      moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     },
     {
       displayName: 'integration',
-      testMatch: ['<rootDir>/tests/integration/**/*.test.js'],
+      testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
       setupFilesAfterEnv: [
-        '<rootDir>/tests/setup.js',
-        '<rootDir>/tests/integration/setup.js',
+        '<rootDir>/tests/setup.ts',
+        '<rootDir>/tests/integration/setup.ts',
       ],
+      transform: {
+        '^.+\\.tsx?$': 'ts-jest',
+      },
+      moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
       // Run integration tests sequentially beacuause of the database
       maxWorkers: 1,
     },
