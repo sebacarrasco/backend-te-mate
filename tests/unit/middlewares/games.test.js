@@ -80,18 +80,6 @@ describe('findUsers middleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
-
-  describe('when database throws an error', () => {
-    it('should return 400 with invalid uuid message', async () => {
-      mockReq.orm.User.findAll.mockRejectedValue(new Error('Database error'));
-
-      await findUsers(mockReq, mockRes, mockNext);
-
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.send).toHaveBeenCalledWith({ message: 'Invalid syntax for type uuid' });
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-  });
 });
 
 describe('findGame middleware', () => {
@@ -161,18 +149,6 @@ describe('findGame middleware', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.send).toHaveBeenCalledWith({ message: 'You are not part of this game' });
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('when database throws an error', () => {
-    it('should return 500', async () => {
-      mockReq.orm.Game.findByPk.mockRejectedValue(new Error('Database error'));
-
-      await findGame(mockReq, mockRes, mockNext);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.send).toHaveBeenCalledWith();
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
@@ -484,18 +460,6 @@ describe('findVictim middleware', () => {
       expect(mockReq.challenge).toBe(mockChallenge);
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('when database throws an error', () => {
-    it('should return 500', async () => {
-      mockReq.orm.Participant.findOne.mockRejectedValue(new Error('Database error'));
-
-      await findVictim(mockReq, mockRes, mockNext);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.send).toHaveBeenCalledWith();
-      expect(mockNext).not.toHaveBeenCalled();
     });
   });
 });

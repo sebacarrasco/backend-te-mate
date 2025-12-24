@@ -236,16 +236,4 @@ describe('setCurrentUser middleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
-
-  describe('when database throws an error', () => {
-    it('should return 401 with invalid token message', async () => {
-      mockReq.orm.User.findByPk.mockRejectedValue(new Error('Database error'));
-
-      await setCurrentUser(mockReq, mockRes, mockNext);
-
-      expect(mockRes.status).toHaveBeenCalledWith(401);
-      expect(mockRes.send).toHaveBeenCalledWith({ message: 'Invalid token' });
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-  });
 });

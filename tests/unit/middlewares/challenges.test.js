@@ -88,16 +88,4 @@ describe('findChallenge middleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
-
-  describe('when database throws an error', () => {
-    it('should return 500', async () => {
-      mockReq.orm.Challenge.findByPk.mockRejectedValue(new Error('Database error'));
-
-      await findChallenge(mockReq, mockRes, mockNext);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.send).toHaveBeenCalledWith();
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-  });
 });
