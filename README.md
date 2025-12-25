@@ -9,7 +9,7 @@
 
 ## Linting
 - Just linting: `yarn lint`.
-- Linting and fix: `yarn lint-fix`.
+- Linting and fixasd: `yarn lint-fix`.
 
 ## Testing
 This project uses Jest for testing. Make sure you have the test database (`te_mate_test`) created and run migrations before running tests:
