@@ -1,3 +1,4 @@
+/* eslint-disable import/no-import-module-exports */
 import 'dotenv/config';
 import { Dialect } from 'sequelize';
 
@@ -45,3 +46,6 @@ Object.keys(config).forEach((configKey) => {
 });
 
 export default config;
+
+// CommonJS export for Sequelize CLI compatibility
+module.exports = config;
