@@ -17,23 +17,17 @@ router.post('/register', [
   fieldValidator,
 ], emailIsUnique, async (req: Request, res: Response) => {
   console.log(`Registering new user with email ${req.body.email}`);
-  try {
-    const [user] = await req.orm.User.findOrCreate({
-      where: { email: req.body.email },
-      defaults: {
-        ...req.body,
-      },
-    });
-    console.log(`User with email ${user.email} created with id ${user.id}`);
-    const token = generateToken(user.id);
-    await sendConfirmAccountEmail(user, token);
-    console.log(`Confirmation email sent to ${user.email}`);
-    return res.status(201).send({ message: 'User was successfully created' });
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error registering user - ${err.message}`);
-    return res.status(500).send();
-  }
+  const [user] = await req.orm.User.findOrCreate({
+    where: { email: req.body.email },
+    defaults: {
+      ...req.body,
+    },
+  });
+  console.log(`User with email ${user.email} created with id ${user.id}`);
+  const token = generateToken(user.id);
+  await sendConfirmAccountEmail(user, token);
+  console.log(`Confirmation email sent to ${user.email}`);
+  return res.status(201).send({ message: 'User was successfully created' });
 });
 
 router.post('/login', [
@@ -54,42 +48,24 @@ router.post('/login', [
     return res.status(401).send({ message: 'Invalid password' });
   }
 
-  try {
-    const token = generateToken(user.id);
-    console.log(`Login successful for ${email}`);
-    return res.status(201).send({ access_token: token, tokenType: 'Bearer' });
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error generating JWT for ${email} - ${err.message}`);
-    return res.status(500).send({ message: 'Error generating the jwt' });
-  }
+  const token = generateToken(user.id);
+  console.log(`Login successful for ${email}`);
+  return res.status(201).send({ access_token: token, tokenType: 'Bearer' });
 });
 
 router.get('/confirmation/:token', setCurrentUserURLToken, async (req: Request, res: Response) => {
   console.log(`Confirming account for user ${req.currentUser!.email}`);
-  try {
-    req.currentUser!.active = true;
-    await req.currentUser!.save();
-    console.log(`Account confirmed successfully for ${req.currentUser!.email}`);
-    return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}confirmation-success`);
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error confirming account - ${err.message}`);
-    return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}invalid`);
-  }
+  req.currentUser!.active = true;
+  await req.currentUser!.save();
+  console.log(`Account confirmed successfully for ${req.currentUser!.email}`);
+  return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}confirmation-success`);
 });
 
 router.get('/desconfirmation/:token', setCurrentUserURLToken, async (req: Request, res: Response) => {
   console.log(`Desconfirming account for user ${req.currentUser!.email}`);
-  try {
-    await req.currentUser!.destroy();
-    console.log(`Account deleted for ${req.currentUser!.email}`);
-    return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}desconfirmation-success`);
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error deleting account - ${err.message}`);
-    return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}invalid`);
-  }
+  await req.currentUser!.destroy();
+  console.log(`Account deleted for ${req.currentUser!.email}`);
+  return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}desconfirmation-success`);
 });
 
 export = router;

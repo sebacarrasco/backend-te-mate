@@ -14,18 +14,12 @@ router.use(setCurrentUser);
 
 router.get('/', async (req: Request, res: Response) => {
   console.log('Fetching all users');
-  try {
-    const users = await req.orm.User.findAll({
-      attributes: ['id', 'firstName', 'lastName', 'email', 'kills', 'createdAt'],
-      where: { active: true },
-    });
-    console.log(`Found ${users.length} active users`);
-    return res.status(200).send({ users });
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error fetching users - ${err.message}`);
-    return res.status(500).send();
-  }
+  const users = await req.orm.User.findAll({
+    attributes: ['id', 'firstName', 'lastName', 'email', 'kills', 'createdAt'],
+    where: { active: true },
+  });
+  console.log(`Found ${users.length} active users`);
+  return res.status(200).send({ users });
 });
 
 router.get('/:userId', [
@@ -41,19 +35,13 @@ router.get('/:userId/challenges', [
   fieldValidator,
 ], findUser, challengeOwnerNotCurrentUser, async (req: Request, res: Response) => {
   console.log(`Fetching challenges for user ${req.params.userId}`);
-  try {
-    const challenges = await req.orm.Challenge.findAll({
-      where: { userId: req.user!.id },
-      order: [['updatedAt', 'DESC']],
-    });
-    console.log(`Found ${challenges.length} challenges for user ${req.user!.id}`);
-    const user = req.user as UserModel;
-    return res.status(200).send({ user: { ...user.toJSON(), challenges } });
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error fetching challenges - ${err.message}`);
-    return res.status(500).send();
-  }
+  const challenges = await req.orm.Challenge.findAll({
+    where: { userId: req.user!.id },
+    order: [['updatedAt', 'DESC']],
+  });
+  console.log(`Found ${challenges.length} challenges for user ${req.user!.id}`);
+  const user = req.user as UserModel;
+  return res.status(200).send({ user: { ...user.toJSON(), challenges } });
 });
 
 export = router;

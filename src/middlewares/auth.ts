@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import '../types/express'; // Import for global type extension
 
 export const emailToLowerCase = (req: Request, res: Response, next: NextFunction) => {
-  if (req.body.email) {
+  if (req.body?.email) {
     req.body.email = req.body.email.toLowerCase();
   }
   return next();
@@ -21,36 +21,55 @@ export const emailIsUnique = async (req: Request, res: Response, next: NextFunct
 
 export const setCurrentUserURLToken = async (req: Request, res: Response, next: NextFunction) => {
   console.log('Verifying URL token');
+  const redirectToInvalid = () => res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}invalid`);
+
+  let decoded;
   try {
-    const decoded = jwt.verify(req.params.token, process.env.JWT_SECRET as string) as { sub: string };
-    const { sub } = decoded;
-    console.log(`Token verified, looking up user with id ${sub}`);
-    const user = await req.orm.User.findByPk(sub);
-    if (user === null) { throw new Error('User not found'); }
-    if (user.active) { throw new Error('User is already active'); }
-    req.currentUser = user;
-    return next();
-  } catch (error) {
-    const err = error as Error;
-    console.log(`Token verification failed - ${err.message}`);
-    return res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}invalid`);
+    decoded = jwt.verify(req.params.token, process.env.JWT_SECRET as string) as { sub: string };
+  } catch {
+    console.log('Token verification failed - invalid token');
+    return redirectToInvalid();
   }
+
+  const { sub } = decoded;
+  console.log(`Token verified, looking up user with id ${sub}`);
+  const user = await req.orm.User.findByPk(sub);
+
+  if (!user) {
+    console.log('Token verification failed - user not found');
+    return redirectToInvalid();
+  }
+  if (user.active) {
+    console.log('Token verification failed - user is already active');
+    return redirectToInvalid();
+  }
+
+  req.currentUser = user;
+  return next();
 };
 
 export const setCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { auth } = req;
-    if (!auth?.sub) { throw new Error('No auth data'); }
-    const { sub } = auth;
-    console.log(`Looking up user with id ${sub}`);
-    const user = await req.orm.User.findByPk(sub);
-    if (user === null) { throw new Error('User not found'); }
-    if (!user.active) { throw new Error('User is not active'); }
-    req.currentUser = user;
-    return next();
-  } catch (error) {
-    const err = error as Error;
-    console.log(`Authentication failed - ${err.message}`);
-    return res.status(401).send({ message: 'Invalid token' });
+  const respondWithInvalidToken = () => res.status(401).send({ message: 'Invalid token' });
+
+  const { auth } = req;
+  if (!auth?.sub) {
+    console.log('Authentication failed - no auth data');
+    return respondWithInvalidToken();
   }
+
+  const { sub } = auth;
+  console.log(`Looking up user with id ${sub}`);
+  const user = await req.orm.User.findByPk(sub);
+
+  if (!user) {
+    console.log('Authentication failed - user not found');
+    return respondWithInvalidToken();
+  }
+  if (!user.active) {
+    console.log('Authentication failed - user is not active');
+    return respondWithInvalidToken();
+  }
+
+  req.currentUser = user;
+  return next();
 };

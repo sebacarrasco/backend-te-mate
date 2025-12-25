@@ -88,18 +88,4 @@ describe('assignChallenges', () => {
       });
     });
   });
-
-  describe('when an error occurs', () => {
-    it('should return [false, {}]', async () => {
-      mockGame.participants.forEach((p) => {
-        p.Challenges.forEach((c) => {
-          c.save.mockRejectedValue(new Error('Save failed'));
-        });
-      });
-
-      const result = await assignChallenges(mockGame as unknown as GameWithParticipants);
-
-      expect(result).toEqual([false, {}]);
-    });
-  });
 });

@@ -84,16 +84,4 @@ describe('findChallenge middleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
-
-  describe('when database throws an error', () => {
-    it('should return 500', async () => {
-      (mockReq.orm!.Challenge!.findByPk as jest.Mock).mockRejectedValue(new Error('Database error'));
-
-      await findChallenge(mockReq as Request, mockRes as Response, mockNext as NextFunction);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.send).toHaveBeenCalledWith();
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-  });
 });

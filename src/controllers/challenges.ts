@@ -18,18 +18,12 @@ router.post('/', [
   fieldValidator,
 ], findUser, challengeOwnerNotCurrentUser, async (req: Request, res: Response) => {
   console.log(`Creating challenge for user ${req.user!.id}`);
-  try {
-    const challenge = await req.orm.Challenge.create({
-      userId: req.user!.id,
-      description: req.body.description,
-    });
-    console.log(`Challenge ${challenge.id} created successfully for user ${req.user!.id}`);
-    return res.status(201).send({ challenge });
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error creating challenge - ${err.message}`);
-    return res.status(500).send();
-  }
+  const challenge = await req.orm.Challenge.create({
+    userId: req.user!.id,
+    description: req.body.description,
+  });
+  console.log(`Challenge ${challenge.id} created successfully for user ${req.user!.id}`);
+  return res.status(201).send({ challenge });
 });
 
 router.patch('/:challengeId', [
@@ -39,16 +33,10 @@ router.patch('/:challengeId', [
   fieldValidator,
 ], findChallenge, challengeOwnerNotCurrentUser, async (req: Request, res: Response) => {
   console.log(`Updating challenge ${req.params.challengeId}`);
-  try {
-    req.challenge!.description = req.body.description;
-    await req.challenge!.save();
-    console.log(`Challenge ${req.challenge!.id} updated successfully`);
-    return res.status(200).send({ challenge: req.challenge });
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error updating challenge ${req.params.challengeId} - ${err.message}`);
-    return res.status(500).send();
-  }
+  req.challenge!.description = req.body.description;
+  await req.challenge!.save();
+  console.log(`Challenge ${req.challenge!.id} updated successfully`);
+  return res.status(200).send({ challenge: req.challenge });
 });
 
 router.delete('/:challengeId', [
@@ -56,15 +44,9 @@ router.delete('/:challengeId', [
   fieldValidator,
 ], findChallenge, challengeOwnerNotCurrentUser, async (req: Request, res: Response) => {
   console.log(`Deleting challenge ${req.params.challengeId}`);
-  try {
-    await req.challenge!.destroy();
-    console.log(`Challenge ${req.params.challengeId} deleted successfully`);
-    return res.status(204).send();
-  } catch (error) {
-    const err = error as Error;
-    console.error(`Error deleting challenge ${req.params.challengeId} - ${err.message}`);
-    return res.status(500).send();
-  }
+  await req.challenge!.destroy();
+  console.log(`Challenge ${req.params.challengeId} deleted successfully`);
+  return res.status(204).send();
 });
 
 export = router;

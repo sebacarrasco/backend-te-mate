@@ -79,18 +79,6 @@ describe('findUsers middleware', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
-
-  describe('when database throws an error', () => {
-    it('should return 400 with invalid uuid message', async () => {
-      (mockReq.orm!.User!.findAll as jest.Mock).mockRejectedValue(new Error('Database error'));
-
-      await findUsers(mockReq as Request, mockRes as Response, mockNext as NextFunction);
-
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.send).toHaveBeenCalledWith({ message: 'Invalid syntax for type uuid' });
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-  });
 });
 
 describe('findGame middleware', () => {
@@ -162,14 +150,11 @@ describe('findGame middleware', () => {
   });
 
   describe('when database throws an error', () => {
-    it('should return 500', async () => {
+    it('should propagate error to Express error handler', async () => {
       (mockReq.orm!.Game!.findByPk as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await findGame(mockReq as Request, mockRes as Response, mockNext as NextFunction);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.send).toHaveBeenCalledWith();
-      expect(mockNext).not.toHaveBeenCalled();
+      await expect(findGame(mockReq as Request, mockRes as Response, mockNext as NextFunction))
+        .rejects.toThrow('Database error');
     });
   });
 });
@@ -469,14 +454,11 @@ describe('findVictim middleware', () => {
   });
 
   describe('when database throws an error', () => {
-    it('should return 500', async () => {
+    it('should propagate error to Express error handler', async () => {
       (mockReq.orm!.Participant!.findOne as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await findVictim(mockReq as Request, mockRes as Response, mockNext as NextFunction);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.send).toHaveBeenCalledWith();
-      expect(mockNext).not.toHaveBeenCalled();
+      await expect(findVictim(mockReq as Request, mockRes as Response, mockNext as NextFunction))
+        .rejects.toThrow('Database error');
     });
   });
 });
