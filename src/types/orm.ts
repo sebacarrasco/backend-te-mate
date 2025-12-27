@@ -8,6 +8,8 @@ import {
   ParticipantModel,
   ChallengeAttributes,
   ChallengeModel,
+  GameUserAttributes,
+  GameUserModel,
 } from './models';
 
 // Destroy options including truncate options
@@ -26,6 +28,14 @@ export interface ORM {
     findAll(options?: object): Promise<UserModel[]>;
     findOrCreate(options: object): Promise<[UserModel, boolean]>;
     create(values: Partial<UserAttributes>): Promise<UserModel>;
+    destroy(options: ModelDestroyOptions): Promise<number>;
+  };
+  GameUser: {
+    findOne(options?: object): Promise<GameUserModel | null>;
+    findByPk(id: number, options?: object): Promise<GameUserModel | null>;
+    findAll(options?: object): Promise<GameUserModel[]>;
+    create(values: Partial<GameUserAttributes>): Promise<GameUserModel>;
+    bulkCreate(values: Partial<GameUserAttributes>[]): Promise<GameUserModel[]>;
     destroy(options: ModelDestroyOptions): Promise<number>;
   };
   Game: {

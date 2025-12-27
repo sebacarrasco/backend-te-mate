@@ -27,6 +27,20 @@ export interface GameAttributes {
 
 export type GameCreationAttributes = Optional<GameAttributes, 'id' | 'status'>;
 
+// GameUser
+export interface GameUserAttributes {
+  id: number;
+  gameId: number;
+  userId: string;
+  isAlive: boolean;
+  kills: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
+}
+
+export type GameUserCreationAttributes = Optional<GameUserAttributes, 'id' | 'isAlive' | 'kills'>;
+
 // Participant
 export interface ParticipantAttributes {
   id: number;
@@ -69,6 +83,11 @@ export type GameModel = Model<GameAttributes> & GameAttributes & {
   addParticipants(users: UserModel[]): Promise<void>;
   participants?: UserModel[];
   toJSON(): GameAttributes & { participants?: GameParticipantWithAssociations[] };
+  save(): Promise<void>;
+  destroy(): Promise<void>;
+};
+
+export type GameUserModel = Model<GameUserAttributes> & GameUserAttributes & {
   save(): Promise<void>;
   destroy(): Promise<void>;
 };

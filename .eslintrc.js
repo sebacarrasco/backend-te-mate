@@ -66,11 +66,14 @@ module.exports = {
       env: {
         jest: true,
       },
+      plugins: ['jest'],
+      extends: ['plugin:jest/recommended'],
       rules: {
         // Allow any in tests for mocking
         '@typescript-eslint/no-explicit-any': 'off',
         // Relax line length for tests
         'max-len': ['error', { code: 140 }],
+        'import/no-extraneous-dependencies': 'off',
       },
     },
   ],
