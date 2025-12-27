@@ -324,6 +324,7 @@ describe('POST /games', () => {
     await orm.Participant.destroy({ where: {}, truncate: true, cascade: true });
     await orm.Game.destroy({ where: {}, truncate: true, cascade: true });
     await orm.User.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
 
     currentUser = await orm.User.create({
       firstName: 'Current',
@@ -373,6 +374,12 @@ describe('POST /games', () => {
         where: { gameId: response.body.game.id },
       });
       expect(participants).toHaveLength(3); // currentUser + 2 participants
+
+      // Verify game users were created in the database
+      const gameUsers = await orm.GameUser.findAll({
+        where: { gameId: response.body.game.id },
+      });
+      expect(gameUsers).toHaveLength(3); // currentUser + 2 participants
     });
   });
 
