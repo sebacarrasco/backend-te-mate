@@ -59,6 +59,13 @@ router.post('/', [
     name: req.body.name,
   });
   await game.addParticipants(req.users!);
+  await req.orm.GameUser.bulkCreate(req.users!.map((user) => ({
+    userId: user.id,
+    gameId: game.id,
+    isAlive: true,
+    kills: 0,
+  })));
+  await game.save();
   console.log(`Game ${game.id} created successfully`);
   return res.status(201).send({ game });
 });
