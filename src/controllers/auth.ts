@@ -26,7 +26,7 @@ router.post('/register', [
   console.log(`User with email ${user.email} created with id ${user.id}`);
   const token = generateToken(user.id);
   await sendConfirmAccountEmail(user, token);
-  console.log(`Confirmation email sent to ${user.email}`);
+  console.log(`Confirmation email sent to ${user.email} with token ${token}`);
   return res.status(201).send({ message: 'User was successfully created' });
 });
 
