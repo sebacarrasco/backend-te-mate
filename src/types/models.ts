@@ -71,6 +71,25 @@ export interface ChallengeAttributes {
 
 export type ChallengeCreationAttributes = Optional<ChallengeAttributes, 'id' | 'selected' | 'participantId'>;
 
+// AssignedChallenge
+export interface AssignedChallengeAttributes {
+  id: number;
+  gameId: number;
+  killerId: string;
+  victimId: string;
+  challengeId: number;
+  isCompleted: boolean;
+  isCancelled: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
+}
+
+export type AssignedChallengeCreationAttributes = Optional<
+  AssignedChallengeAttributes,
+  'id' | 'isCompleted' | 'isCancelled' | 'deletedAt'
+>;
+
 export type UserModel = Model<UserAttributes> & UserAttributes & {
   checkPassword(password: string): Promise<boolean>;
   getGames(options?: object): Promise<GameModel[]>;
@@ -100,6 +119,11 @@ export type ParticipantModel = Model<ParticipantAttributes> & ParticipantAttribu
 
 export type ChallengeModel = Model<ChallengeAttributes> & ChallengeAttributes & {
   setParticipant(participantId: number): Promise<void>;
+  save(): Promise<void>;
+  destroy(): Promise<void>;
+};
+
+export type AssignedChallengeModel = Model<AssignedChallengeAttributes> & AssignedChallengeAttributes & {
   save(): Promise<void>;
   destroy(): Promise<void>;
 };

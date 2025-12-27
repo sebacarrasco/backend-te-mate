@@ -7,6 +7,7 @@ import gameFactory from './game';
 import participantFactory from './participant';
 import challengeFactory from './challenge';
 import gameUserFactory from './game-user';
+import assignedChallengeFactory from './assignedchallenge';
 
 const env = process.env.NODE_ENV || 'development';
 const dbConfig = config[env];
@@ -23,6 +24,7 @@ const Game = gameFactory(sequelize);
 const GameUser = gameUserFactory(sequelize);
 const Participant = participantFactory(sequelize);
 const Challenge = challengeFactory(sequelize);
+const AssignedChallenge = assignedChallengeFactory(sequelize);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const models: Record<string, ModelStatic<any>> = {
@@ -31,6 +33,7 @@ const models: Record<string, ModelStatic<any>> = {
   GameUser,
   Participant,
   Challenge,
+  AssignedChallenge,
 };
 
 // Set up associations
@@ -50,9 +53,10 @@ const orm = {
   GameUser,
   Participant,
   Challenge,
+  AssignedChallenge,
 } as unknown as ORM;
 
 export {
-  sequelize, Sequelize, User, Game, GameUser, Participant, Challenge,
+  sequelize, Sequelize, User, Game, GameUser, Participant, Challenge, AssignedChallenge,
 };
 export default orm;
