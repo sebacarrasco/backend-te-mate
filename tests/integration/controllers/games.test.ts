@@ -6,11 +6,19 @@ import {
 } from '@jest/globals';
 import { createApp, orm } from '../../helpers/app';
 import { generateToken } from '../../../src/utils/jwt';
+import {
+  AssignedChallengeModel,
+  ChallengeModel,
+  GameModel,
+  GameUserModel,
+  UserModel,
+} from '../../../src/types';
+import { SuperTestResponse } from '../../types';
 
 describe('GET /games', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let otherUser: any;
+  let currentUser: UserModel;
+  let otherUser: UserModel;
   let authToken: string;
 
   beforeAll(() => {
@@ -55,7 +63,9 @@ describe('GET /games', () => {
         isAlive: true,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<
+        { games: (GameModel & { isUserAlive: boolean; owner: UserModel })[] }
+      > = await request(app)
         .get('/games')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -71,7 +81,9 @@ describe('GET /games', () => {
     });
 
     it('should return empty array when user has no games', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<
+        { games: (GameModel & { isUserAlive: boolean; owner: UserModel })[] }
+      > = await request(app)
         .get('/games')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -93,7 +105,9 @@ describe('GET /games', () => {
         isAlive: true,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<
+        { games: (GameModel & { isUserAlive: boolean; owner: UserModel })[] }
+      > = await request(app)
         .get('/games')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -120,7 +134,9 @@ describe('GET /games', () => {
         isAlive: true,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<
+        { games: (GameModel & { isUserAlive: boolean; owner: UserModel })[] }
+      > = await request(app)
         .get('/games')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -146,12 +162,12 @@ describe('GET /games', () => {
 
 describe('GET /games/:gameId', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let otherUser: any;
+  let currentUser: UserModel;
+  let otherUser: UserModel;
   let authToken: string;
-  let game: any;
-  let challengeForCurrentUser: any;
-  let challengeForOtherUser: any;
+  let game: GameModel;
+  let challengeForCurrentUser: ChallengeModel;
+  let challengeForOtherUser: ChallengeModel;
 
   beforeAll(() => {
     app = createApp();
@@ -215,7 +231,14 @@ describe('GET /games/:gameId', () => {
 
   describe('with valid request', () => {
     it('should return 200 with game details for setup status', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<
+        { game: GameModel & {
+          isUserAlive: boolean; owner: UserModel;
+          participants: (UserModel & { challengesNotSelected: number; gameUser: GameUserModel })[];
+          victim: UserModel | null;
+          challenge: ChallengeModel | null;
+        } }
+      > = await request(app)
         .get(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -232,7 +255,9 @@ describe('GET /games/:gameId', () => {
 
       expect(response.body.game.participants).toBeDefined();
       expect(response.body.game.participants).toHaveLength(2);
-      response.body.game.participants.forEach((participant: any) => {
+      response.body.game.participants.forEach((
+        participant: UserModel & { challengesNotSelected: number; gameUser: GameUserModel },
+      ) => {
         expect(participant).toHaveProperty('id');
         expect(participant).toHaveProperty('firstName');
         expect(participant).toHaveProperty('lastName');
@@ -274,14 +299,23 @@ describe('GET /games/:gameId', () => {
         },
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<
+        { game: GameModel & {
+          isUserAlive: boolean; owner: UserModel;
+          participants: (UserModel & { challengesNotSelected: number; gameUser: GameUserModel })[];
+          victim: UserModel;
+          challenge: ChallengeModel;
+        } }
+      > = await request(app)
         .get(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.game.status).toBe('in progress');
 
-      response.body.game.participants.forEach((participant: any) => {
+      response.body.game.participants.forEach((
+        participant: UserModel & { challengesNotSelected: number; gameUser: GameUserModel },
+      ) => {
         expect(participant.challengesNotSelected).toBe(0);
       });
 
@@ -298,7 +332,7 @@ describe('GET /games/:gameId', () => {
 
   describe('when game is not found', () => {
     it('should return 404', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .get('/games/999999')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -319,7 +353,7 @@ describe('GET /games/:gameId', () => {
 
       const nonParticipantToken = generateToken(excludedUser.id);
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .get(`/games/${game.id}`)
         .set('Authorization', `Bearer ${nonParticipantToken}`);
 
@@ -339,9 +373,9 @@ describe('GET /games/:gameId', () => {
 
 describe('POST /games', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let participant1: any;
-  let participant2: any;
+  let currentUser: UserModel;
+  let participant1: UserModel;
+  let participant2: UserModel;
   let authToken: string;
 
   beforeAll(() => {
@@ -383,7 +417,9 @@ describe('POST /games', () => {
 
   describe('with valid request', () => {
     it('should return 201 and create a game with participants', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{
+        game: GameModel & { isUserAlive: boolean; owner: UserModel };
+      }> = await request(app)
         .post('/games')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -412,7 +448,9 @@ describe('POST /games', () => {
 
   describe('with validation errors', () => {
     it('should return 400 when name is too short', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{
+        errors: { name: string }[];
+      }> = await request(app)
         .post('/games')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -427,7 +465,7 @@ describe('POST /games', () => {
 
   describe('when not enough participants', () => {
     it('should return 406 when less than 2 userIds provided', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/games')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -444,7 +482,7 @@ describe('POST /games', () => {
     it('should return 404 when a userIds does not exist', async () => {
       const fakeUserId = '00000000-0000-0000-0000-000000000000';
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/games')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -465,7 +503,7 @@ describe('POST /games', () => {
         active: false,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/games')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -494,13 +532,15 @@ describe('POST /games', () => {
 
 describe('PATCH /games/:gameId', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let otherUser: any;
+  let currentUser: UserModel;
+  let otherUser: UserModel;
   let authToken: string;
-  let game: any;
+  let game: GameModel;
+  let sendGridSpy: jest.SpiedFunction<typeof sendgridMail.send>;
 
   beforeAll(() => {
     app = createApp();
+    sendGridSpy = jest.spyOn(sendgridMail, 'send').mockResolvedValue({} as never);
   });
 
   beforeEach(async () => {
@@ -553,7 +593,9 @@ describe('PATCH /games/:gameId', () => {
 
   describe('when updating game name', () => {
     it('should return 200 and update the name without sending emails', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{
+        game: GameModel & { isUserAlive: boolean; owner: UserModel };
+      }> = await request(app)
         .patch(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'Updated Game Name' });
@@ -566,7 +608,7 @@ describe('PATCH /games/:gameId', () => {
       expect(updatedGame!.name).toBe('Updated Game Name');
 
       // Verify no emails were sent (only sent when starting game)
-      expect(sendgridMail.send).not.toHaveBeenCalled();
+      expect(sendGridSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -578,7 +620,7 @@ describe('PATCH /games/:gameId', () => {
         attributes: ['userId'],
       });
 
-      await Promise.all(gameUsers.flatMap((gameUser: any) => [
+      await Promise.all(gameUsers.flatMap((gameUser: GameUserModel) => [
         orm.Challenge.create({
           userId: gameUser.userId,
           description: 'Challenge 1',
@@ -593,7 +635,9 @@ describe('PATCH /games/:gameId', () => {
     });
 
     it('should return 200, create assigned challenges, and send emails', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{
+        game: GameModel & { isUserAlive: boolean; owner: UserModel };
+      }> = await request(app)
         .patch(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'in progress' });
@@ -620,19 +664,19 @@ describe('PATCH /games/:gameId', () => {
       expect(assignedChallenges).toHaveLength(2);
 
       // Verify each user is assigned as killer to exactly one other user
-      const killerIds = assignedChallenges.map((ac: any) => ac.killerId);
-      const victimIds = assignedChallenges.map((ac: any) => ac.victimId);
+      const killerIds = assignedChallenges.map((ac: AssignedChallengeModel) => ac.killerId);
+      const victimIds = assignedChallenges.map((ac: AssignedChallengeModel) => ac.victimId);
       const gameUserIds = [currentUser.id, otherUser.id];
 
-      killerIds.forEach((killerId: any) => {
+      killerIds.forEach((killerId: string) => {
         expect(gameUserIds).toContain(killerId);
       });
-      victimIds.forEach((victimId: any) => {
+      victimIds.forEach((victimId: string) => {
         expect(gameUserIds).toContain(victimId);
       });
 
       // Verify killer is not their own victim
-      assignedChallenges.forEach((ac: any) => {
+      assignedChallenges.forEach((ac: AssignedChallengeModel) => {
         expect(ac.killerId).not.toBe(ac.victimId);
       });
 
@@ -643,7 +687,7 @@ describe('PATCH /games/:gameId', () => {
       expect(selectedChallenges).toHaveLength(2);
 
       // Verify emails were sent (one per user)
-      expect(sendgridMail.send).toHaveBeenCalledTimes(2);
+      expect(sendGridSpy).toHaveBeenCalledTimes(2);
     });
 
     it('should return 406 when participants do not have enough challenges', async () => {
@@ -655,7 +699,7 @@ describe('PATCH /games/:gameId', () => {
         where: { description: { [Op.like]: 'Challenge 2' } },
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .patch(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'in progress' });
@@ -669,7 +713,7 @@ describe('PATCH /games/:gameId', () => {
     it('should return 403', async () => {
       const otherUserToken = generateToken(otherUser.id);
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .patch(`/games/${game.id}`)
         .set('Authorization', `Bearer ${otherUserToken}`)
         .send({ name: 'Hacked Name' });
@@ -681,7 +725,7 @@ describe('PATCH /games/:gameId', () => {
 
   describe('when game is not found', () => {
     it('should return 404', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .patch('/games/999999')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'New Name' });
@@ -693,7 +737,7 @@ describe('PATCH /games/:gameId', () => {
 
   describe('with validation errors', () => {
     it('should return 400 when name is too short', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { name: { msg: string } } }> = await request(app)
         .patch(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'A' });
@@ -704,7 +748,7 @@ describe('PATCH /games/:gameId', () => {
     });
 
     it('should return 400 when status is invalid', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { name: { msg: string } } }> = await request(app)
         .patch(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'invalid-status' });
@@ -728,10 +772,10 @@ describe('PATCH /games/:gameId', () => {
 
 describe('DELETE /games/:gameId', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let otherUser: any;
+  let currentUser: UserModel;
+  let otherUser: UserModel;
   let authToken: string;
-  let game: any;
+  let game: GameModel;
 
   beforeAll(() => {
     app = createApp();
@@ -826,7 +870,7 @@ describe('DELETE /games/:gameId', () => {
     it('should return 403', async () => {
       const otherUserToken = generateToken(otherUser.id);
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .delete(`/games/${game.id}`)
         .set('Authorization', `Bearer ${otherUserToken}`);
 
@@ -841,7 +885,7 @@ describe('DELETE /games/:gameId', () => {
 
   describe('when game is not found', () => {
     it('should return 404', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .delete('/games/999999')
         .set('Authorization', `Bearer ${authToken}`);
 

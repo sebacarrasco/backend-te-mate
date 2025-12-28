@@ -2,14 +2,22 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import '../types/express'; // Import for global type extension
 
-export const emailToLowerCase = (req: Request, res: Response, next: NextFunction) => {
+export const emailToLowerCase = (
+  req: Request<object, object, { email?: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
   if (req.body?.email) {
     req.body.email = req.body.email.toLowerCase();
   }
   return next();
 };
 
-export const emailIsUnique = async (req: Request, res: Response, next: NextFunction) => {
+export const emailIsUnique = async (
+  req: Request<object, object, { email?: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
   console.log(`Checking if email "${req.body.email}" is unique`);
   const user = await req.orm.User.findOne({ where: { email: req.body.email, active: true } });
   if (user) {
@@ -19,7 +27,11 @@ export const emailIsUnique = async (req: Request, res: Response, next: NextFunct
   return next();
 };
 
-export const setCurrentUserURLToken = async (req: Request, res: Response, next: NextFunction) => {
+export const setCurrentUserURLToken = async (
+  req: Request<{ token: string }, object, object>,
+  res: Response,
+  next: NextFunction,
+) => {
   console.log('Verifying URL token');
   const redirectToInvalid = () => res.redirect(`${process.env.CONFIRMATION_ACCOUNT_REDIRECT_URL}invalid`);
 
@@ -48,7 +60,11 @@ export const setCurrentUserURLToken = async (req: Request, res: Response, next: 
   return next();
 };
 
-export const setCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
+export const setCurrentUser = async (
+  req: Request<object, object, { auth: { sub: string } }>,
+  res: Response,
+  next: NextFunction,
+) => {
   const respondWithInvalidToken = () => res.status(401).send({ message: 'Invalid token' });
 
   const { auth } = req;

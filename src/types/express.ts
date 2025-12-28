@@ -6,12 +6,12 @@ declare global {
   namespace Express {
     interface Request {
       orm: ORM;
-      auth?: { sub: string }; // From express-jwt
-      currentUser?: UserModel;
-      user?: UserModel | { id: string };
-      users?: UserModel[];
-      game?: GameModel;
-      challenge?: ChallengeModel;
+      auth: { sub: string }; // From express-jwt
+      currentUser: UserModel;
+      user: UserModel;
+      users: UserModel[];
+      game: GameModel;
+      challenge: ChallengeModel;
     }
   }
 }

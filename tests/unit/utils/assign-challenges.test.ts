@@ -120,8 +120,8 @@ describe('assignChallenges', () => {
         mockChallengesByUser as Record<string, ChallengeModel[]>,
       );
 
-      expect(mockOrm.Challenge!.update).toHaveBeenCalledTimes(1);
-      expect(mockOrm.Challenge!.update).toHaveBeenCalledWith(
+      expect((mockOrm.Challenge as unknown as { update: jest.Mock }).update).toHaveBeenCalledTimes(1);
+      expect((mockOrm.Challenge as unknown as { update: jest.Mock }).update).toHaveBeenCalledWith(
         { selected: true },
         expect.objectContaining({ where: expect.any(Object) }),
       );
@@ -135,8 +135,8 @@ describe('assignChallenges', () => {
         mockChallengesByUser as Record<string, ChallengeModel[]>,
       );
 
-      expect(mockOrm.AssignedChallenge!.bulkCreate).toHaveBeenCalledTimes(1);
-      expect(mockOrm.AssignedChallenge!.bulkCreate).toHaveBeenCalledWith(
+      expect((mockOrm.AssignedChallenge as unknown as { bulkCreate: jest.Mock }).bulkCreate).toHaveBeenCalledTimes(1);
+      expect((mockOrm.AssignedChallenge as unknown as { bulkCreate: jest.Mock }).bulkCreate).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             gameId: mockGame.id,

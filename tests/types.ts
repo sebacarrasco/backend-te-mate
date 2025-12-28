@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Response as STResponse } from 'supertest';
 
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
@@ -29,3 +30,5 @@ export const createMockResponse = (): MockResponse => ({
   send: jest.fn().mockReturnThis(),
   redirect: jest.fn(),
 });
+
+export type SuperTestResponse<T> = Omit<STResponse, 'body'> & { body: T };

@@ -4,11 +4,13 @@ import {
 } from '@jest/globals';
 import { createApp, orm } from '../../helpers/app';
 import { generateToken } from '../../../src/utils/jwt';
+import { ChallengeModel, UserModel } from '../../../src/types';
+import { SuperTestResponse } from '../../types';
 
 describe('POST /challenges', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let targetUser: any;
+  let currentUser: UserModel;
+  let targetUser: UserModel;
   let authToken: string;
 
   beforeAll(() => {
@@ -40,7 +42,7 @@ describe('POST /challenges', () => {
 
   describe('with valid data', () => {
     it('should return 201 with created challenge', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ challenge: ChallengeModel }> = await request(app)
         .post('/challenges')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -57,7 +59,7 @@ describe('POST /challenges', () => {
 
   describe('with invalid userId', () => {
     it('should return 400 when userId is not a UUID', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { userId: string } }> = await request(app)
         .post('/challenges')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -73,7 +75,7 @@ describe('POST /challenges', () => {
 
   describe('with description too short', () => {
     it('should return 400 with validation error', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { description: string } }> = await request(app)
         .post('/challenges')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -89,7 +91,7 @@ describe('POST /challenges', () => {
 
   describe('when target user is not found', () => {
     it('should return 404', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/challenges')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -104,7 +106,7 @@ describe('POST /challenges', () => {
 
   describe('when creating challenge for yourself', () => {
     it('should return 403 with access denied message', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/challenges')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -133,10 +135,10 @@ describe('POST /challenges', () => {
 
 describe('PATCH /challenges/:challengeId', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let targetUser: any;
+  let currentUser: UserModel;
+  let targetUser: UserModel;
   let authToken: string;
-  let challenge: any;
+  let challenge: ChallengeModel;
 
   beforeAll(() => {
     app = createApp();
@@ -172,7 +174,7 @@ describe('PATCH /challenges/:challengeId', () => {
 
   describe('with valid data', () => {
     it('should return 200 with updated challenge', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ challenge: ChallengeModel }> = await request(app)
         .patch(`/challenges/${challenge.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -187,7 +189,7 @@ describe('PATCH /challenges/:challengeId', () => {
 
   describe('when challenge is not found', () => {
     it('should return 404', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .patch('/challenges/999999')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -201,7 +203,7 @@ describe('PATCH /challenges/:challengeId', () => {
 
   describe('with description too short', () => {
     it('should return 400 with validation error', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { description: string } }> = await request(app)
         .patch(`/challenges/${challenge.id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -218,7 +220,7 @@ describe('PATCH /challenges/:challengeId', () => {
     it('should return 403 with access denied message', async () => {
       const ownAuthToken = generateToken(currentUser.id);
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .patch(`/challenges/${challenge.id}`)
         .set('Authorization', `Bearer ${ownAuthToken}`)
         .send({
@@ -245,10 +247,10 @@ describe('PATCH /challenges/:challengeId', () => {
 
 describe('DELETE /challenges/:challengeId', () => {
   let app: ReturnType<typeof createApp>;
-  let currentUser: any;
-  let targetUser: any;
+  let currentUser: UserModel;
+  let targetUser: UserModel;
   let authToken: string;
-  let challenge: any;
+  let challenge: ChallengeModel;
 
   beforeAll(() => {
     app = createApp();
@@ -297,7 +299,7 @@ describe('DELETE /challenges/:challengeId', () => {
 
   describe('when challenge is not found', () => {
     it('should return 404', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .delete('/challenges/999999')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -310,7 +312,7 @@ describe('DELETE /challenges/:challengeId', () => {
     it('should return 403 with access denied message', async () => {
       const ownAuthToken = generateToken(currentUser.id);
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .delete(`/challenges/${challenge.id}`)
         .set('Authorization', `Bearer ${ownAuthToken}`);
 

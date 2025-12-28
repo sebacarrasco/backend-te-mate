@@ -5,12 +5,15 @@ import {
 } from '@jest/globals';
 import { createApp, orm } from '../../helpers/app';
 import { generateToken } from '../../../src/utils/jwt';
+import { SuperTestResponse } from '../../types';
 
 describe('POST /auth/register', () => {
   let app: ReturnType<typeof createApp>;
+  let sendSpy: jest.SpiedFunction<typeof sendgridMail.send>;
 
   beforeAll(() => {
     app = createApp();
+    sendSpy = jest.spyOn(sendgridMail, 'send').mockResolvedValue({} as never);
   });
 
   beforeEach(async () => {
@@ -20,7 +23,7 @@ describe('POST /auth/register', () => {
 
   describe('with valid registration data', () => {
     it('should return 201 and success message', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/auth/register')
         .send({
           firstName: 'John',
@@ -37,7 +40,7 @@ describe('POST /auth/register', () => {
       expect(user!.firstName).toBe('John');
       expect(user!.active).toBe(false);
 
-      expect(sendgridMail.send).toHaveBeenCalled();
+      expect(sendSpy).toHaveBeenCalled();
     });
 
     it('should allow registration when user exists but is inactive', async () => {
@@ -49,7 +52,7 @@ describe('POST /auth/register', () => {
         active: false,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/auth/register')
         .send({
           firstName: 'New',
@@ -60,13 +63,13 @@ describe('POST /auth/register', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.message).toBe('User was successfully created');
-      expect(sendgridMail.send).toHaveBeenCalled();
+      expect(sendSpy).toHaveBeenCalled();
     });
   });
 
   describe('with invalid email format', () => {
     it('should return 400 with validation error', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { email: string } }> = await request(app)
         .post('/auth/register')
         .send({
           firstName: 'John',
@@ -83,7 +86,7 @@ describe('POST /auth/register', () => {
 
   describe('with password too short', () => {
     it('should return 400 with validation error', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { password: string } }> = await request(app)
         .post('/auth/register')
         .send({
           firstName: 'John',
@@ -108,7 +111,7 @@ describe('POST /auth/register', () => {
         active: true,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/auth/register')
         .send({
           firstName: 'John',
@@ -124,7 +127,7 @@ describe('POST /auth/register', () => {
 
   describe('with missing required fields', () => {
     it('should return 400 when firstName is missing', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { firstName: string } }> = await request(app)
         .post('/auth/register')
         .send({
           lastName: 'Doe',
@@ -159,7 +162,7 @@ describe('POST /auth/login', () => {
 
   describe('with valid credentials', () => {
     it('should return 201 with access token', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ access_token: string; tokenType: string }> = await request(app)
         .post('/auth/login')
         .send({
           email: 'john.doe@example.com',
@@ -174,7 +177,7 @@ describe('POST /auth/login', () => {
 
   describe('when user is not found', () => {
     it('should return 404 with error message', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/auth/login')
         .send({
           email: 'nonexistent@example.com',
@@ -188,7 +191,7 @@ describe('POST /auth/login', () => {
 
   describe('when password is incorrect', () => {
     it('should return 401 with invalid password message', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/auth/login')
         .send({
           email: 'john.doe@example.com',
@@ -210,7 +213,7 @@ describe('POST /auth/login', () => {
         active: false,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .post('/auth/login')
         .send({
           email: 'inactive@example.com',
