@@ -4,7 +4,6 @@ import { ORM } from '../types/orm';
 
 import userFactory from './user';
 import gameFactory from './game';
-import participantFactory from './participant';
 import challengeFactory from './challenge';
 import gameUserFactory from './game-user';
 import assignedChallengeFactory from './assignedchallenge';
@@ -22,7 +21,6 @@ const sequelize = new Sequelize(sequelizeConfig as string);
 const User = userFactory(sequelize);
 const Game = gameFactory(sequelize);
 const GameUser = gameUserFactory(sequelize);
-const Participant = participantFactory(sequelize);
 const Challenge = challengeFactory(sequelize);
 const AssignedChallenge = assignedChallengeFactory(sequelize);
 
@@ -31,7 +29,6 @@ const models: Record<string, ModelStatic<any>> = {
   User,
   Game,
   GameUser,
-  Participant,
   Challenge,
   AssignedChallenge,
 };
@@ -51,12 +48,11 @@ const orm = {
   User,
   Game,
   GameUser,
-  Participant,
   Challenge,
   AssignedChallenge,
 } as unknown as ORM;
 
 export {
-  sequelize, Sequelize, User, Game, GameUser, Participant, Challenge, AssignedChallenge,
+  sequelize, Sequelize, User, Game, GameUser, Challenge, AssignedChallenge,
 };
 export default orm;

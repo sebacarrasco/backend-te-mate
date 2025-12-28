@@ -20,8 +20,8 @@ export default (sequelize: Sequelize) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     static associate(models: Record<string, ModelStatic<any>>) {
       this.belongsToMany(models.User, {
-        as: 'participants',
-        through: models.Participant,
+        as: 'users',
+        through: models.GameUser,
         foreignKey: { allowNull: false, name: 'gameId' },
       });
       this.belongsTo(models.User, { as: 'owner', foreignKey: { allowNull: false, name: 'ownerId' } });

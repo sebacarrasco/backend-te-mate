@@ -41,35 +41,17 @@ export interface GameUserAttributes {
 
 export type GameUserCreationAttributes = Optional<GameUserAttributes, 'id' | 'isAlive' | 'kills'>;
 
-// Participant
-export interface ParticipantAttributes {
-  id: number;
-  userId: string;
-  gameId: number;
-  alive: boolean;
-  kills: number;
-  participantKillerId?: number | null;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export type ParticipantCreationAttributes = Optional<
-  ParticipantAttributes,
-  'id' | 'alive' | 'kills' | 'participantKillerId'
->;
-
 // Challenge
 export interface ChallengeAttributes {
   id: number;
   description: string;
   selected: boolean;
   userId: string;
-  participantId?: number | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export type ChallengeCreationAttributes = Optional<ChallengeAttributes, 'id' | 'selected' | 'participantId'>;
+export type ChallengeCreationAttributes = Optional<ChallengeAttributes, 'id' | 'selected'>;
 
 // AssignedChallenge
 export interface AssignedChallengeAttributes {
@@ -99,9 +81,6 @@ export type UserModel = Model<UserAttributes> & UserAttributes & {
 };
 
 export type GameModel = Model<GameAttributes> & GameAttributes & {
-  addParticipants(users: UserModel[]): Promise<void>;
-  participants?: UserModel[];
-  toJSON(): GameAttributes & { participants?: GameParticipantWithAssociations[] };
   save(): Promise<void>;
   destroy(): Promise<void>;
 };
@@ -111,14 +90,7 @@ export type GameUserModel = Model<GameUserAttributes> & GameUserAttributes & {
   destroy(): Promise<void>;
 };
 
-export type ParticipantModel = Model<ParticipantAttributes> & ParticipantAttributes & {
-  setKiller(killerId: number): Promise<void>;
-  save(): Promise<void>;
-  destroy(): Promise<void>;
-};
-
 export type ChallengeModel = Model<ChallengeAttributes> & ChallengeAttributes & {
-  setParticipant(participantId: number): Promise<void>;
   save(): Promise<void>;
   destroy(): Promise<void>;
 };
@@ -128,10 +100,6 @@ export type AssignedChallengeModel = Model<AssignedChallengeAttributes> & Assign
   destroy(): Promise<void>;
 };
 
-export interface GameParticipantWithAssociations extends UserAttributes {
-  Participant: ParticipantModel;
-  Challenges: ChallengeModel[];
-}
 export interface EmailInfo {
   killer: UserModel;
   victim: UserModel;
