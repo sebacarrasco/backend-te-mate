@@ -4,8 +4,6 @@ import {
   UserModel,
   GameAttributes,
   GameModel,
-  ParticipantAttributes,
-  ParticipantModel,
   ChallengeAttributes,
   ChallengeModel,
   GameUserAttributes,
@@ -45,13 +43,6 @@ export interface ORM {
     findByPk(id: number | string, options?: object): Promise<GameModel | null>;
     findAll(options?: object): Promise<GameModel[]>;
     create(values: Partial<GameAttributes>): Promise<GameModel>;
-    destroy(options: ModelDestroyOptions): Promise<number>;
-  };
-  Participant: {
-    findOne(options?: object): Promise<ParticipantModel | null>;
-    findByPk(id: number, options?: object): Promise<ParticipantModel | null>;
-    findAll(options?: object): Promise<ParticipantModel[]>;
-    create(values: Partial<ParticipantAttributes>): Promise<ParticipantModel>;
     destroy(options: ModelDestroyOptions): Promise<number>;
   };
   Challenge: {

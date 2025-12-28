@@ -13,8 +13,6 @@ export default (sequelize: Sequelize) => {
 
     declare userId: string;
 
-    declare participantId: number | null;
-
     declare readonly createdAt: Date;
 
     declare readonly updatedAt: Date;
@@ -22,7 +20,6 @@ export default (sequelize: Sequelize) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     static associate(models: Record<string, ModelStatic<any>>) {
       this.belongsTo(models.User, { foreignKey: { allowNull: false, name: 'userId' } });
-      this.belongsTo(models.Participant, { foreignKey: { allowNull: true, name: 'participantId' } });
     }
   }
 
@@ -47,10 +44,6 @@ export default (sequelize: Sequelize) => {
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
-    },
-    participantId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
     },
   }, {
     sequelize,
