@@ -1,5 +1,8 @@
 import request from 'supertest';
 import sendgridMail from '@sendgrid/mail';
+import {
+  describe, it, expect, beforeAll, beforeEach, jest,
+} from '@jest/globals';
 import { createApp, orm } from '../../helpers/app';
 import { generateToken } from '../../../src/utils/jwt';
 

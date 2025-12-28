@@ -1,4 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import {
+  describe, it, expect, beforeEach, jest,
+} from '@jest/globals';
 import { challengeOwnerNotCurrentUser, findChallenge } from '../../../src/middlewares/challenges';
 import { MockRequest, MockResponse, createMockResponse } from '../../types';
 
@@ -61,7 +64,7 @@ describe('findChallenge middleware', () => {
   describe('when challenge is found', () => {
     it('should set req.user, req.challenge and call next', async () => {
       const mockChallenge = { id: 'challenge-123', userId: 'owner-user-id' };
-      (mockReq.orm!.Challenge!.findByPk as jest.Mock).mockResolvedValue(mockChallenge);
+      (mockReq.orm!.Challenge!.findByPk as jest.Mock<any>).mockResolvedValue(mockChallenge);
 
       await findChallenge(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -75,7 +78,7 @@ describe('findChallenge middleware', () => {
 
   describe('when challenge is not found', () => {
     it('should return 404 with challenge not found message', async () => {
-      (mockReq.orm!.Challenge!.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockReq.orm!.Challenge!.findByPk as jest.Mock<any>).mockResolvedValue(null);
 
       await findChallenge(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 

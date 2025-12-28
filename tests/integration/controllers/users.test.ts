@@ -1,5 +1,8 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import {
+  describe, it, expect, beforeAll, beforeEach,
+} from '@jest/globals';
 import { createApp, orm } from '../../helpers/app';
 import { generateToken } from '../../../src/utils/jwt';
 
