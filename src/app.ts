@@ -26,9 +26,13 @@ interface HttpError extends Error {
 }
 
 app.use((err: HttpError, req: Request, res: Response, _next: NextFunction) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  console.error({
+    message: err.message,
+    stack: err.stack,
+    status: err.status,
+    path: req.path,
+    method: req.method,
+  });
 
   if (err.name === 'UnauthorizedError') { return res.status(401).send({ message: 'Invalid Token' }); }
   return res.status(err.status || 500).send();
