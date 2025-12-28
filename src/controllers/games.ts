@@ -4,11 +4,15 @@ import { check } from 'express-validator';
 import { setCurrentUser } from '../middlewares/auth';
 import { fieldValidator } from '../middlewares/field-validator';
 import {
-  findUsers, findGame, checkOwner, checkName, checkGameParams, checkStatus, findVictim,
+  findUsers, findGame, checkOwner, checkName, checkGameParams, checkStatus, checkGameUser,
 } from '../middlewares/games';
 import { assignChallenges } from '../utils/assign-challenges';
 import sendGameStartedEmail = require('../mailers/game-started');
 import '../types/express'; // Import for global type extension
+import {
+  AssignChallengesResult, ChallengeModel, GameModel, GameUserModel, UserModel,
+} from '../types/models';
+import { mapGameResponse, mapParticipantResponse, mapUserResponse } from '../utils/mappers';
 
 const router = express.Router();
 
@@ -17,31 +21,55 @@ router.use(setCurrentUser);
 
 router.get('/', async (req: Request, res: Response) => {
   console.log(`Fetching games for user ${req.currentUser!.id}`);
-  const games = await req.currentUser!.getGames({
-    joinTableAttributes: ['alive'],
-    order: [['updatedAt', 'DESC']],
-  });
+  const gameUsers = await req.orm.GameUser.findAll({ where: { userId: req.currentUser!.id } });
+  const games = await req.orm.Game.findAll({ where: { id: gameUsers.map((gu) => gu.gameId) } });
+  const gameOwners = await req.orm.User.findAll({ where: { id: games.map((game) => game.ownerId) } });
   console.log(`Found ${games.length} games for user ${req.currentUser!.id}`);
-  return res.status(200).send({ games });
+  return res.status(200).send({
+    games: games.map((game) => mapGameResponse(
+      game,
+      gameUsers.find((gu) => gu.gameId === game.id) as GameUserModel,
+      gameOwners.find((owner) => owner.id === game.ownerId) as UserModel,
+    )),
+  });
 });
 
 router.get('/:gameId', [
   check('gameId', 'gameId must be an integer').isInt(),
   fieldValidator,
-], findGame, findVictim, async (req: Request, res: Response) => {
+], findGame, checkGameUser, async (req: Request, res: Response) => {
   console.log(`Fetching game ${req.params.gameId} details`);
-  const game = req.game!.toJSON();
-  const transformedParticipants = (game.participants || []).map(({ Challenges, ...rest }) => ({
-    ...rest,
-    challengesNotSelected: Challenges?.length || 0,
-  }));
-  console.log(`Game ${req.game!.name} has ${transformedParticipants.length} participants`);
+  const game = req.game as GameModel;
+  const gameUsers = await req.orm.GameUser.findAll({
+    where: { gameId: req.game!.id },
+  });
+  const currentUserGameUser = gameUsers.find((gu) => gu.userId === req.currentUser!.id) as GameUserModel;
+  const users = await req.orm.User.findAll({
+    where: { id: gameUsers.map((gu) => gu.userId) },
+  });
+  const challengesNotSelected = await req.orm.Challenge.findAll({
+    where: { userId: users.map((u) => u.id), selected: false },
+  });
+  const owner = users.find((u) => u.id === game.ownerId) as UserModel;
+  const assignedChallengeWithChallenge = await req.orm.AssignedChallenge.findOne({
+    where: { gameId: game.id, killerId: req.currentUser!.id },
+  });
+  const challenge = assignedChallengeWithChallenge ? await req.orm.Challenge.findByPk(
+    assignedChallengeWithChallenge.challengeId,
+  ) as ChallengeModel : null;
+  const victim = assignedChallengeWithChallenge ? users.find(
+    (u) => u.id === assignedChallengeWithChallenge.victimId,
+  ) as UserModel : null;
   return res.status(200).send({
     game: {
-      ...game,
-      participants: transformedParticipants,
-      victim: req.victimUser,
-      challenge: req.challenge,
+      ...mapGameResponse(game, currentUserGameUser, owner),
+      participants: users.map((user) => mapParticipantResponse(
+        user,
+        gameUsers.find((gu) => gu.userId === user.id) as GameUserModel,
+        challengesNotSelected.filter((c) => c.userId === user.id).length,
+      )),
+      victim: victim ? mapUserResponse(victim) : null,
+      challenge: challenge ? { description: challenge.description } : null,
     },
   });
 });
@@ -53,12 +81,11 @@ router.post('/', [
   check('name', 'name should be at least 2 characters long').isLength({ min: 2 }),
   fieldValidator,
 ], findUsers, async (req: Request, res: Response) => {
-  console.log(`Creating game "${req.body.name}" with ${req.users!.length} participants`);
+  console.log(`Creating game "${req.body.name}" with ${req.users!.length} users`);
   const game = await req.orm.Game.create({
     ownerId: req.currentUser!.id,
     name: req.body.name,
   });
-  await game.addParticipants(req.users!);
   await req.orm.GameUser.bulkCreate(req.users!.map((user) => ({
     userId: user.id,
     gameId: game.id,
@@ -66,35 +93,67 @@ router.post('/', [
     kills: 0,
   })));
   await game.save();
+  const currentUserGameUser = await req.orm.GameUser.findOne({
+    where: { gameId: game.id, userId: req.currentUser!.id },
+  }) as GameUserModel;
+
   console.log(`Game ${game.id} created successfully`);
-  return res.status(201).send({ game });
+  return res.status(201).send({
+    game: {
+      ...mapGameResponse(game, currentUserGameUser, req.currentUser!),
+    },
+  });
 });
 
 router.patch('/:gameId', [
   check('gameId', 'gameId must be an integer').isInt(),
   fieldValidator,
-], findGame, checkOwner, checkGameParams, checkName, checkStatus, async (req: Request, res: Response) => {
+], findGame, checkOwner, checkGameParams, checkName, checkStatus, async (
+  req: Request,
+  res: Response,
+) => {
   console.log(`Updating game ${req.params.gameId}`);
-  let emailsInfo;
+  let results: AssignChallengesResult | null = null;
   req.game!.name = req.body.name || req.game!.name;
+  const gameUsers = await req.orm.GameUser.findAll({
+    where: { gameId: req.game!.id },
+  });
   if (req.game!.status === 'setup' && req.body.status === 'in progress') {
     console.log(`Starting game ${req.game!.id} - assigning challenges`);
-    const results = await assignChallenges(req.game!);
-    if (!results[0]) {
+    const availableChallenges = await req.orm.Challenge.findAll({
+      where: { userId: gameUsers.map((gu) => gu.userId), selected: false },
+    });
+    const challengesByUser = availableChallenges.reduce((acc, challenge) => {
+      acc[challenge.userId] = acc[challenge.userId] || [];
+      acc[challenge.userId].push(challenge);
+      return acc;
+    }, {} as Record<string, ChallengeModel[]>);
+    if (Object.values(challengesByUser).some((challenges) => challenges.length < 2)) {
       console.log('Cannot start game - not every participant has 2 or more challenges');
       return res.status(406).send({ message: 'Not every participant has 2 or more challenges' });
     }
+    const users = await req.orm.User.findAll({
+      where: { id: gameUsers.map((gu) => gu.userId) },
+      attributes: ['id', 'firstName', 'lastName', 'email'],
+    });
+    results = await assignChallenges(req.orm, req.game!, users, challengesByUser);
     req.game!.status = 'in progress';
-    [, emailsInfo] = results;
-    console.log(`Game ${req.game!.id} started - challenges assigned to ${emailsInfo.length} participants`);
+    console.log(`Game ${req.game!.id} started - challenges assigned to ${results.length} participants`);
   }
   await req.game!.save();
   console.log(`Game ${req.game!.id} updated successfully`);
-  const { participants: _participants, ...rest } = req.game!.toJSON();
-  res.status(200).send({ game: rest });
-  if (emailsInfo) {
-    return Promise.all(emailsInfo.map(async (e) => {
-      await sendGameStartedEmail(req.game!, e.killer, e.participant, e.challengeDescription);
+  res.status(200).send({
+    game: {
+      ...mapGameResponse(
+        req.game!,
+        gameUsers.find((gu) => gu.userId === req.currentUser!.id) as GameUserModel,
+        req.currentUser!,
+      ),
+    },
+  });
+  if (results) {
+    return Promise.all(results.map(async (result) => {
+      await sendGameStartedEmail(req.game!, result.killer, result.victim, result.challengeDescription);
     }));
   }
   return null;

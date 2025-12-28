@@ -1,6 +1,9 @@
 import request from 'supertest';
 import { Op } from 'sequelize';
 import sendgridMail from '@sendgrid/mail';
+import {
+  describe, it, expect, beforeAll, beforeEach, jest,
+} from '@jest/globals';
 import { createApp, orm } from '../../helpers/app';
 import { generateToken } from '../../../src/utils/jwt';
 
@@ -15,9 +18,9 @@ describe('GET /games', () => {
   });
 
   beforeEach(async () => {
-    await orm.Participant.destroy({ where: {}, truncate: true, cascade: true });
     await orm.Game.destroy({ where: {}, truncate: true, cascade: true });
     await orm.User.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
 
     currentUser = await orm.User.create({
       firstName: 'Current',
@@ -46,9 +49,10 @@ describe('GET /games', () => {
         ownerId: currentUser.id,
       });
 
-      await orm.Participant.create({
+      await orm.GameUser.create({
         gameId: game.id,
         userId: currentUser.id,
+        isAlive: true,
       });
 
       const response = await request(app)
@@ -59,6 +63,11 @@ describe('GET /games', () => {
       expect(response.body.games).toBeDefined();
       expect(response.body.games).toHaveLength(1);
       expect(response.body.games[0].name).toBe('Test Game');
+      expect(response.body.games[0].ownerId).toBe(currentUser.id);
+      expect(response.body.games[0].isUserAlive).toBe(true);
+      expect(response.body.games[0].owner.firstName).toBe('Current');
+      expect(response.body.games[0].owner.lastName).toBe('User');
+      expect(response.body.games[0].owner.email).toBe('current@example.com');
     });
 
     it('should return empty array when user has no games', async () => {
@@ -78,9 +87,10 @@ describe('GET /games', () => {
         ownerId: otherUser.id,
       });
 
-      await orm.Participant.create({
+      await orm.GameUser.create({
         gameId: game.id,
         userId: otherUser.id,
+        isAlive: true,
       });
 
       const response = await request(app)
@@ -98,14 +108,16 @@ describe('GET /games', () => {
         ownerId: otherUser.id,
       });
 
-      await orm.Participant.create({
+      await orm.GameUser.create({
         gameId: game.id,
         userId: otherUser.id,
+        isAlive: true,
       });
 
-      await orm.Participant.create({
+      await orm.GameUser.create({
         gameId: game.id,
         userId: currentUser.id,
+        isAlive: true,
       });
 
       const response = await request(app)
@@ -115,6 +127,11 @@ describe('GET /games', () => {
       expect(response.status).toBe(200);
       expect(response.body.games).toHaveLength(1);
       expect(response.body.games[0].name).toBe('Game Owned By Other');
+      expect(response.body.games[0].isUserAlive).toBe(true);
+      expect(response.body.games[0].owner.firstName).toBe('Other');
+      expect(response.body.games[0].owner.lastName).toBe('User');
+      expect(response.body.games[0].owner.email).toBe('other@example.com');
+      expect(response.body.games[0].ownerId).toBe(otherUser.id);
     });
   });
 
@@ -133,6 +150,8 @@ describe('GET /games/:gameId', () => {
   let otherUser: any;
   let authToken: string;
   let game: any;
+  let challengeForCurrentUser: any;
+  let challengeForOtherUser: any;
 
   beforeAll(() => {
     app = createApp();
@@ -140,9 +159,10 @@ describe('GET /games/:gameId', () => {
 
   beforeEach(async () => {
     await orm.Challenge.destroy({ where: {}, truncate: true, cascade: true });
-    await orm.Participant.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
     await orm.Game.destroy({ where: {}, truncate: true, cascade: true });
     await orm.User.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.AssignedChallenge.destroy({ where: {}, truncate: true, cascade: true });
 
     currentUser = await orm.User.create({
       firstName: 'Current',
@@ -166,26 +186,26 @@ describe('GET /games/:gameId', () => {
       ownerId: currentUser.id,
     });
 
-    const participant1 = await orm.Participant.create({
+    await orm.GameUser.create({
       gameId: game.id,
       userId: currentUser.id,
+      isAlive: true,
     });
 
-    const participant2 = await orm.Participant.create({
+    await orm.GameUser.create({
       gameId: game.id,
       userId: otherUser.id,
+      isAlive: true,
     });
 
-    await orm.Challenge.create({
+    challengeForCurrentUser = await orm.Challenge.create({
       userId: currentUser.id,
-      participantId: participant1.id,
       description: 'Challenge for current user',
       selected: false,
     });
 
-    await orm.Challenge.create({
+    challengeForOtherUser = await orm.Challenge.create({
       userId: otherUser.id,
-      participantId: participant2.id,
       description: 'Challenge for other user',
       selected: false,
     });
@@ -201,9 +221,14 @@ describe('GET /games/:gameId', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.game).toBeDefined();
+      expect(response.body.game.id).toBe(game.id);
       expect(response.body.game.name).toBe('Test Game');
       expect(response.body.game.status).toBe('setup');
       expect(response.body.game.ownerId).toBe(currentUser.id);
+      expect(response.body.game.isUserAlive).toBe(true);
+      expect(response.body.game.owner.firstName).toBe('Current');
+      expect(response.body.game.owner.lastName).toBe('User');
+      expect(response.body.game.owner.email).toBe('current@example.com');
 
       expect(response.body.game.participants).toBeDefined();
       expect(response.body.game.participants).toHaveLength(2);
@@ -212,44 +237,42 @@ describe('GET /games/:gameId', () => {
         expect(participant).toHaveProperty('firstName');
         expect(participant).toHaveProperty('lastName');
         expect(participant).toHaveProperty('email');
-        expect(participant).toHaveProperty('challengesNotSelected');
+        expect(participant.challengesNotSelected).toBe(1);
+        expect(participant.gameUser.isAlive).toBe(true);
+        expect(participant.gameUser.kills).toBe(0);
         expect(participant.password).toBeUndefined();
       });
 
-      expect(response.body.game.owner).toBeDefined();
-      expect(response.body.game.owner.id).toBe(currentUser.id);
-
       // victim and challenge are undefined when game is in 'setup' status
-      expect(response.body.game.victim).toBeUndefined();
-      expect(response.body.game.challenge).toBeUndefined();
+      expect(response.body.game.victim).toBeNull();
+      expect(response.body.game.challenge).toBeNull();
     });
 
     it('should include victim and challenge when game is in progress', async () => {
-      // Get participants - need explicit id attribute due to Sequelize config
-      const participants = await orm.Participant.findAll({
-        where: { gameId: game.id },
-        attributes: ['id', 'userId', 'gameId', 'participantKillerId'],
-      });
-      const killerParticipant = participants.find((p: any) => p.userId === currentUser.id)!;
-      const victimParticipant = participants.find((p: any) => p.userId === otherUser.id)!;
-
-      // Store IDs before update (update() modifies the object)
-      const killerParticipantId = killerParticipant.id;
-      const victimParticipantId = victimParticipant.id;
-
-      // Set up killer relationship: victim's killer is the currentUser
-      await victimParticipant.update({ participantKillerId: killerParticipantId });
-
-      // Create challenge for the victim participant (the challenge the killer needs to complete)
-      await orm.Challenge.create({
-        userId: otherUser.id,
-        participantId: victimParticipantId,
-        description: 'Victim challenge to complete',
-        selected: true,
-      });
-
       // Update game status to 'in progress'
       await game.update({ status: 'in progress' });
+
+      await orm.AssignedChallenge.create({
+        gameId: game.id,
+        killerId: currentUser.id,
+        victimId: otherUser.id,
+        challengeId: challengeForOtherUser.id,
+      });
+
+      await orm.AssignedChallenge.create({
+        gameId: game.id,
+        killerId: otherUser.id,
+        victimId: currentUser.id,
+        challengeId: challengeForCurrentUser.id,
+      });
+
+      await orm.Challenge.update({
+        selected: true,
+      }, {
+        where: {
+          id: [challengeForOtherUser.id, challengeForCurrentUser.id],
+        },
+      });
 
       const response = await request(app)
         .get(`/games/${game.id}`)
@@ -258,12 +281,18 @@ describe('GET /games/:gameId', () => {
       expect(response.status).toBe(200);
       expect(response.body.game.status).toBe('in progress');
 
+      response.body.game.participants.forEach((participant: any) => {
+        expect(participant.challengesNotSelected).toBe(0);
+      });
+
       expect(response.body.game.victim).toBeDefined();
       expect(response.body.game.victim.id).toBe(otherUser.id);
       expect(response.body.game.victim.firstName).toBe('Other');
+      expect(response.body.game.victim.lastName).toBe('User');
+      expect(response.body.game.victim.email).toBe('other@example.com');
 
       expect(response.body.game.challenge).toBeDefined();
-      expect(response.body.game.challenge.description).toBe('Victim challenge to complete');
+      expect(response.body.game.challenge.description).toBe('Challenge for other user');
     });
   });
 
@@ -278,9 +307,9 @@ describe('GET /games/:gameId', () => {
     });
   });
 
-  describe('when user is not a participant', () => {
+  describe('when user is not part of the game', () => {
     it('should return 401', async () => {
-      const nonParticipant = await orm.User.create({
+      const excludedUser = await orm.User.create({
         firstName: 'Non',
         lastName: 'Participant',
         email: 'nonparticipant@example.com',
@@ -288,7 +317,7 @@ describe('GET /games/:gameId', () => {
         active: true,
       });
 
-      const nonParticipantToken = generateToken(nonParticipant.id);
+      const nonParticipantToken = generateToken(excludedUser.id);
 
       const response = await request(app)
         .get(`/games/${game.id}`)
@@ -321,10 +350,9 @@ describe('POST /games', () => {
 
   beforeEach(async () => {
     await orm.Challenge.destroy({ where: {}, truncate: true, cascade: true });
-    await orm.Participant.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
     await orm.Game.destroy({ where: {}, truncate: true, cascade: true });
     await orm.User.destroy({ where: {}, truncate: true, cascade: true });
-    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
 
     currentUser = await orm.User.create({
       firstName: 'Current',
@@ -365,15 +393,14 @@ describe('POST /games', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.game).toBeDefined();
+      expect(response.body.game.id).toBeDefined();
       expect(response.body.game.name).toBe('New Game');
       expect(response.body.game.ownerId).toBe(currentUser.id);
       expect(response.body.game.status).toBe('setup');
-
-      // Verify participants were created in the database
-      const participants = await orm.Participant.findAll({
-        where: { gameId: response.body.game.id },
-      });
-      expect(participants).toHaveLength(3); // currentUser + 2 participants
+      expect(response.body.game.isUserAlive).toBe(true);
+      expect(response.body.game.owner.firstName).toBe('Current');
+      expect(response.body.game.owner.lastName).toBe('User');
+      expect(response.body.game.owner.email).toBe('current@example.com');
 
       // Verify game users were created in the database
       const gameUsers = await orm.GameUser.findAll({
@@ -471,8 +498,6 @@ describe('PATCH /games/:gameId', () => {
   let otherUser: any;
   let authToken: string;
   let game: any;
-  let participant1: any;
-  let participant2: any;
 
   beforeAll(() => {
     app = createApp();
@@ -481,8 +506,9 @@ describe('PATCH /games/:gameId', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
+    await orm.AssignedChallenge.destroy({ where: {}, truncate: true, cascade: true });
     await orm.Challenge.destroy({ where: {}, truncate: true, cascade: true });
-    await orm.Participant.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
     await orm.Game.destroy({ where: {}, truncate: true, cascade: true });
     await orm.User.destroy({ where: {}, truncate: true, cascade: true });
 
@@ -508,19 +534,16 @@ describe('PATCH /games/:gameId', () => {
       ownerId: currentUser.id,
     });
 
-    participant1 = await orm.Participant.create({ gameId: game.id, userId: currentUser.id });
-    participant2 = await orm.Participant.create({ gameId: game.id, userId: otherUser.id });
+    await orm.GameUser.create({ gameId: game.id, userId: currentUser.id });
+    await orm.GameUser.create({ gameId: game.id, userId: otherUser.id });
 
-    // Create challenges with selected: false (required by findGame middleware)
     await orm.Challenge.create({
       userId: currentUser.id,
-      participantId: participant1.id,
       description: 'Challenge for current user',
       selected: false,
     });
     await orm.Challenge.create({
       userId: otherUser.id,
-      participantId: participant2.id,
       description: 'Challenge for other user',
       selected: false,
     });
@@ -549,29 +572,27 @@ describe('PATCH /games/:gameId', () => {
 
   describe('when starting the game (setup -> in progress)', () => {
     beforeEach(async () => {
-      // Create challenges for participants - each needs at least 2
-      const participants = await orm.Participant.findAll({
+      // Create challenges for game users - each needs at least 2
+      const gameUsers = await orm.GameUser.findAll({
         where: { gameId: game.id },
-        attributes: ['id', 'userId'],
+        attributes: ['userId'],
       });
 
-      await Promise.all(participants.flatMap((participant: any) => [
+      await Promise.all(gameUsers.flatMap((gameUser: any) => [
         orm.Challenge.create({
-          userId: participant.userId,
-          participantId: participant.id,
+          userId: gameUser.userId,
           description: 'Challenge 1',
           selected: false,
         }),
         orm.Challenge.create({
-          userId: participant.userId,
-          participantId: participant.id,
+          userId: gameUser.userId,
           description: 'Challenge 2',
           selected: false,
         }),
       ]));
     });
 
-    it('should return 200, assign challenges, set up killer relationships, and send emails', async () => {
+    it('should return 200, create assigned challenges, and send emails', async () => {
       const response = await request(app)
         .patch(`/games/${game.id}`)
         .set('Authorization', `Bearer ${authToken}`)
@@ -579,40 +600,54 @@ describe('PATCH /games/:gameId', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.game.status).toBe('in progress');
+      expect(response.body.game.id).toBe(game.id);
+      expect(response.body.game.name).toBe('Test Game');
+      expect(response.body.game.ownerId).toBe(currentUser.id);
+      expect(response.body.game.isUserAlive).toBe(true);
+      expect(response.body.game.owner.firstName).toBe('Current');
+      expect(response.body.game.owner.lastName).toBe('User');
+      expect(response.body.game.owner.email).toBe('current@example.com');
+      expect(response.body.game.isUserAlive).toBe(true);
 
       // Verify game status in database
       const updatedGame = await orm.Game.findByPk(game.id);
       expect(updatedGame!.status).toBe('in progress');
 
-      // Verify killer relationships were set up (each participant has a killer)
-      const participants = await orm.Participant.findAll({
+      // Verify assigned challenges were created (one per game user)
+      const assignedChallenges = await orm.AssignedChallenge.findAll({
         where: { gameId: game.id },
-        attributes: ['id', 'userId', 'participantKillerId'],
       });
-      expect(participants).toHaveLength(2);
-      participants.forEach((participant: any) => {
-        expect(participant.participantKillerId).not.toBeNull();
-      });
+      expect(assignedChallenges).toHaveLength(2);
 
-      // Verify each participant is assigned as killer to exactly one other participant
-      const killerIds = participants.map((p: any) => p.participantKillerId);
-      const participantIds = participants.map((p: any) => p.id);
+      // Verify each user is assigned as killer to exactly one other user
+      const killerIds = assignedChallenges.map((ac: any) => ac.killerId);
+      const victimIds = assignedChallenges.map((ac: any) => ac.victimId);
+      const gameUserIds = [currentUser.id, otherUser.id];
+
       killerIds.forEach((killerId: any) => {
-        expect(participantIds).toContain(killerId);
+        expect(gameUserIds).toContain(killerId);
+      });
+      victimIds.forEach((victimId: any) => {
+        expect(gameUserIds).toContain(victimId);
       });
 
-      // Verify challenges were selected (one per participant should be selected)
+      // Verify killer is not their own victim
+      assignedChallenges.forEach((ac: any) => {
+        expect(ac.killerId).not.toBe(ac.victimId);
+      });
+
+      // Verify challenges were selected (one per user should be selected)
       const selectedChallenges = await orm.Challenge.findAll({
         where: { selected: true },
       });
       expect(selectedChallenges).toHaveLength(2);
 
-      // Verify emails were sent (one per participant)
+      // Verify emails were sent (one per user)
       expect(sendgridMail.send).toHaveBeenCalledTimes(2);
     });
 
     it('should return 406 when participants do not have enough challenges', async () => {
-      // Remove the extra challenges created in nested beforeEach, leaving only 1 per participant
+      // Remove the extra challenges created in nested beforeEach, leaving only 1 per user
       await orm.Challenge.destroy({
         where: { description: { [Op.like]: 'Challenge 1' } },
       });
@@ -704,7 +739,7 @@ describe('DELETE /games/:gameId', () => {
 
   beforeEach(async () => {
     await orm.Challenge.destroy({ where: {}, truncate: true, cascade: true });
-    await orm.Participant.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
     await orm.Game.destroy({ where: {}, truncate: true, cascade: true });
     await orm.User.destroy({ where: {}, truncate: true, cascade: true });
 
@@ -730,21 +765,32 @@ describe('DELETE /games/:gameId', () => {
       ownerId: currentUser.id,
     });
 
-    const participant1 = await orm.Participant.create({ gameId: game.id, userId: currentUser.id });
-    const participant2 = await orm.Participant.create({ gameId: game.id, userId: otherUser.id });
+    await orm.GameUser.create({ gameId: game.id, userId: currentUser.id });
+    await orm.GameUser.create({ gameId: game.id, userId: otherUser.id });
 
     // Create challenges (required by findGame middleware)
-    await orm.Challenge.create({
+    const challengeForCurrentUser = await orm.Challenge.create({
       userId: currentUser.id,
-      participantId: participant1.id,
       description: 'Challenge 1',
-      selected: false,
+      selected: true,
     });
-    await orm.Challenge.create({
+    const challengeForOtherUser = await orm.Challenge.create({
       userId: otherUser.id,
-      participantId: participant2.id,
       description: 'Challenge 2',
-      selected: false,
+      selected: true,
+    });
+
+    await orm.AssignedChallenge.create({
+      gameId: game.id,
+      killerId: currentUser.id,
+      victimId: otherUser.id,
+      challengeId: challengeForCurrentUser.id,
+    });
+    await orm.AssignedChallenge.create({
+      gameId: game.id,
+      killerId: otherUser.id,
+      victimId: currentUser.id,
+      challengeId: challengeForOtherUser.id,
     });
 
     authToken = generateToken(currentUser.id);
@@ -761,6 +807,18 @@ describe('DELETE /games/:gameId', () => {
       // Verify game is deleted from database
       const deletedGame = await orm.Game.findByPk(game.id);
       expect(deletedGame).toBeNull();
+
+      // Verify assigned challenges are deleted
+      const assignedChallenges = await orm.AssignedChallenge.findAll({
+        where: { gameId: game.id },
+      });
+      expect(assignedChallenges).toHaveLength(0);
+
+      // Verify game users are deleted
+      const gameUsers = await orm.GameUser.findAll({
+        where: { gameId: game.id },
+      });
+      expect(gameUsers).toHaveLength(0);
     });
   });
 

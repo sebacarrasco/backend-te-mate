@@ -1,4 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import {
+  describe, it, expect, beforeEach, jest,
+} from '@jest/globals';
 import { findUser } from '../../../src/middlewares/users';
 import { MockRequest, MockResponse, createMockResponse } from '../../types';
 
@@ -24,7 +27,7 @@ describe('findUser middleware', () => {
   describe('when user is found and active (from params)', () => {
     it('should set req.user and call next', async () => {
       const mockUser = { id: 'user-123', active: true };
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await findUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -42,7 +45,7 @@ describe('findUser middleware', () => {
       const mockUser = { id: 'user-456', active: true };
       mockReq.params = {};
       mockReq.body.userId = 'user-456';
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await findUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -54,7 +57,7 @@ describe('findUser middleware', () => {
 
   describe('when user is not found', () => {
     it('should return 404 with user not found message', async () => {
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(null);
 
       await findUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -67,7 +70,7 @@ describe('findUser middleware', () => {
   describe('when user is found but not active', () => {
     it('should return 404 with user not found message', async () => {
       const mockUser = { id: 'user-123', active: false };
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await findUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 

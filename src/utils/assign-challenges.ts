@@ -1,32 +1,53 @@
+import { Op } from 'sequelize';
 import {
-  GameWithParticipants,
   EmailInfo,
   AssignChallengesResult,
+  UserModel,
+  ChallengeModel,
+  AssignedChallengeCreationAttributes,
+  GameModel,
 } from '../types/models';
+import { ORM } from '../types/orm';
 
-export const assignChallenges = async (game: GameWithParticipants): Promise<AssignChallengesResult> => {
-  let { participants } = game;
-  const notReadyParticipants = participants.filter(
-    (p) => p.Challenges.length < 2,
-  );
-  if (notReadyParticipants.length !== 0) { return [false, {}]; }
+export const assignChallenges = async (
+  orm: ORM,
+  game: GameModel,
+  users: UserModel[],
+  challengesByUser: Record<string, ChallengeModel[]>,
+): Promise<AssignChallengesResult> => {
+  const usersInRandomOrder = [...users].sort(() => Math.random() - 0.5);
+  const assignationResults: EmailInfo[] = [];
+  const selectedChallenges: ChallengeModel[] = [];
+  const assignedChallenges: AssignedChallengeCreationAttributes[] = [];
 
-  participants = participants.sort(() => Math.random() - 0.5);
-  const emailsInfo: EmailInfo[] = [];
-  await Promise.all(participants.map(async (p, index) => {
-    const challenge = p.Challenges[
-      Math.floor(Math.random() * p.Challenges.length)
+  usersInRandomOrder.forEach((killer, index) => {
+    const victim = index === usersInRandomOrder.length - 1 ? usersInRandomOrder[0] : usersInRandomOrder[index + 1];
+    const victimChallenges = challengesByUser[victim.id];
+    const challenge = victimChallenges[
+      Math.floor(Math.random() * victimChallenges.length)
     ];
-    await challenge.setParticipant(p.Participant.id);
-    challenge.selected = true;
-    await challenge.save();
-    const killer = index === participants.length - 1 ? participants[0] : participants[index + 1];
-    await p.Participant.setKiller(killer.Participant.id);
-    emailsInfo.push({
+    selectedChallenges.push(challenge);
+    const assignedChallenge = {
+      gameId: game.id,
+      killerId: killer.id,
+      victimId: victim.id,
+      challengeId: challenge.id,
+    };
+    assignedChallenges.push(assignedChallenge);
+    assignationResults.push({
       killer,
-      participant: p,
+      victim,
       challengeDescription: challenge.description,
     });
-  }));
-  return [true, emailsInfo];
+  });
+
+  await updateSelectedChallenges(orm, selectedChallenges);
+  await orm.AssignedChallenge.bulkCreate(assignedChallenges);
+  return assignationResults;
+};
+
+const updateSelectedChallenges = async (orm: ORM, challenges: ChallengeModel[]): Promise<void> => {
+  await orm.Challenge.update({
+    selected: true,
+  }, { where: { id: { [Op.in]: challenges.map((c) => c.id) } } });
 };

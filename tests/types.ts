@@ -15,7 +15,6 @@ export interface MockRequest extends Omit<Partial<Request>, OmittedRequestProps>
   user?: DeepPartial<Request['user']>;
   game?: DeepPartial<Request['game']>;
   challenge?: DeepPartial<Request['challenge']>;
-  victimUser?: DeepPartial<Request['victimUser']>;
   users?: Request['users']; // Keep as array, not Partial
 }
 

@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import {
+  describe, it, expect, beforeEach, jest,
+} from '@jest/globals';
+import {
   setCurrentUser,
   emailToLowerCase,
   emailIsUnique,
@@ -62,7 +65,7 @@ describe('emailIsUnique middleware', () => {
 
   describe('when email is unique', () => {
     it('should call next', async () => {
-      (mockReq.orm!.User!.findOne as jest.Mock).mockResolvedValue(null);
+      (mockReq.orm!.User!.findOne as jest.Mock<any>).mockResolvedValue(null);
 
       await emailIsUnique(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -77,7 +80,7 @@ describe('emailIsUnique middleware', () => {
   describe('when email already exists', () => {
     it('should return 409 with error message', async () => {
       const mockUser = { id: 'existing-user-id', email: 'test@example.com', active: true };
-      (mockReq.orm!.User!.findOne as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findOne as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await emailIsUnique(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -114,7 +117,7 @@ describe('setCurrentUserURLToken middleware', () => {
   describe('when token is valid and user exists and is not active', () => {
     it('should set currentUser and call next', async () => {
       const mockUser = { id: 'test-user-id', active: false };
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await setCurrentUserURLToken(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -138,7 +141,7 @@ describe('setCurrentUserURLToken middleware', () => {
 
   describe('when user is not found', () => {
     it('should redirect to invalid URL', async () => {
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(null);
 
       await setCurrentUserURLToken(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -150,7 +153,7 @@ describe('setCurrentUserURLToken middleware', () => {
   describe('when user is already active', () => {
     it('should redirect to invalid URL', async () => {
       const mockUser = { id: 'test-user-id', active: true };
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await setCurrentUserURLToken(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -181,7 +184,7 @@ describe('setCurrentUser middleware', () => {
   describe('when user exists and is active', () => {
     it('should set currentUser and call next', async () => {
       const mockUser = { id: 'test-user-id', active: true };
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await setCurrentUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -194,7 +197,7 @@ describe('setCurrentUser middleware', () => {
 
   describe('when user is not found', () => {
     it('should return 401 with invalid token message', async () => {
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(null);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(null);
 
       await setCurrentUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
@@ -208,7 +211,7 @@ describe('setCurrentUser middleware', () => {
   describe('when user is not active', () => {
     it('should return 401 with invalid token message', async () => {
       const mockUser = { id: 'test-user-id', active: false };
-      (mockReq.orm!.User!.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
       await setCurrentUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
