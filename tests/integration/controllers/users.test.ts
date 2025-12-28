@@ -5,10 +5,12 @@ import {
 } from '@jest/globals';
 import { createApp, orm } from '../../helpers/app';
 import { generateToken } from '../../../src/utils/jwt';
+import { UserModel } from '../../../src/types';
+import { SuperTestResponse } from '../../types';
 
 describe('GET /users/:userId', () => {
   let app: ReturnType<typeof createApp>;
-  let testUser: any;
+  let testUser: UserModel;
   let authToken: string;
 
   beforeAll(() => {
@@ -31,7 +33,7 @@ describe('GET /users/:userId', () => {
 
   describe('with valid authentication', () => {
     it('should return 200 and user data when user exists', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ user: UserModel }> = await request(app)
         .get(`/users/${testUser.id}`)
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -48,7 +50,7 @@ describe('GET /users/:userId', () => {
     it('should return 404 when user does not exist', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .get(`/users/${nonExistentId}`)
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -65,7 +67,7 @@ describe('GET /users/:userId', () => {
         active: false,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .get(`/users/${inactiveUser.id}`)
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -74,7 +76,7 @@ describe('GET /users/:userId', () => {
     });
 
     it('should return 400 when userId is not a valid UUID', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ errors: { userId: string } }> = await request(app)
         .get('/users/invalid-uuid')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -106,7 +108,7 @@ describe('GET /users/:userId', () => {
     it('should return 401 when token belongs to non-existent user', async () => {
       const tokenForNonExistentUser = generateToken('00000000-0000-0000-0000-000000000000');
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ message: string }> = await request(app)
         .get(`/users/${testUser.id}`)
         .set('Authorization', `Bearer ${tokenForNonExistentUser}`);
 
@@ -118,7 +120,7 @@ describe('GET /users/:userId', () => {
 
 describe('GET /users', () => {
   let app: ReturnType<typeof createApp>;
-  let testUser: any;
+  let testUser: UserModel;
   let authToken: string;
 
   beforeAll(() => {
@@ -149,7 +151,7 @@ describe('GET /users', () => {
         active: true,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ users: UserModel[] }> = await request(app)
         .get('/users')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -167,7 +169,7 @@ describe('GET /users', () => {
         active: false,
       });
 
-      const response = await request(app)
+      const response: SuperTestResponse<{ users: UserModel[] }> = await request(app)
         .get('/users')
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -177,12 +179,12 @@ describe('GET /users', () => {
     });
 
     it('should not include password in response', async () => {
-      const response = await request(app)
+      const response: SuperTestResponse<{ users: UserModel[] }> = await request(app)
         .get('/users')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      response.body.users.forEach((user: any) => {
+      response.body.users.forEach((user: UserModel) => {
         expect(user.password).toBeUndefined();
       });
     });

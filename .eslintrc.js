@@ -33,11 +33,14 @@ module.exports = {
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname,
       },
       plugins: ['@typescript-eslint'],
       extends: [
         'airbnb-base',
         'plugin:@typescript-eslint/recommended',
+        'plugin:@typescript-eslint/recommended-requiring-type-checking',
       ],
       rules: {
         'no-console': 0,
@@ -74,6 +77,9 @@ module.exports = {
         // Relax line length for tests
         'max-len': ['error', { code: 140 }],
         'import/no-extraneous-dependencies': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
       },
     },
   ],

@@ -2,13 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
 import '../types/express'; // Import for global type extension
 
-export const findUsers = async (req: Request, res: Response, next: NextFunction) => {
+export const findUsers = async (
+  req: Request<object, object, { userIds: string[] }>,
+  res: Response,
+  next: NextFunction,
+) => {
   console.log(`Finding users for game creation, received ${req.body.userIds?.length || 0} user IDs`);
   if (req.body.userIds.length < 2) {
     console.log('Not enough participants');
     return res.status(406).send({ message: 'There should be at least 2 other participants' });
   }
-  const userIds = [...req.body.userIds, req.currentUser!.id];
+  const userIds = [...req.body.userIds, req.currentUser.id];
   const users = await req.orm.User.findAll({
     where: {
       id: {
@@ -39,25 +43,28 @@ export const findGame = async (req: Request, res: Response, next: NextFunction) 
 
 export const checkGameUser = async (req: Request, res: Response, next: NextFunction) => {
   const gameUser = await req.orm.GameUser.findOne({
-    where: { gameId: req.game!.id, userId: req.currentUser!.id },
+    where: { gameId: req.game.id, userId: req.currentUser.id },
   });
   if (!gameUser) {
-    console.log(`User ${req.currentUser!.id} is not a game user of game ${req.game!.id}`);
+    console.log(`User ${req.currentUser.id} is not a game user of game ${req.game.id}`);
     return res.status(401).send({ message: 'You are not part of this game' });
   }
   return next();
 };
 
-export const checkOwner = async (req: Request, res: Response, next: NextFunction) => {
-  if (req.game!.ownerId !== req.currentUser!.id) {
-    console.log(`User ${req.currentUser!.id} does not own game (owner: ${req.game!.ownerId})`);
+export const checkOwner = (req: Request, res: Response, next: NextFunction) => {
+  if (req.game.ownerId !== req.currentUser.id) {
+    console.log(`User ${req.currentUser.id} does not own game (owner: ${req.game.ownerId})`);
     return res.status(403).send({ message: 'Access denied: you cannot modify a game unless you own it' });
   }
   console.log('Access granted - user is the owner');
   return next();
 };
 
-export const checkGameParams = (req: Request, res: Response, next: NextFunction) => {
+export const checkGameParams = (req: Request<object, object, {
+  name?: string;
+  status?: string;
+}>, res: Response, next: NextFunction) => {
   if (!req.body.name && !req.body.status) {
     console.log('Missing required params - body should contain name or status');
     return res.status(400).send({
@@ -74,7 +81,9 @@ export const checkGameParams = (req: Request, res: Response, next: NextFunction)
   return next();
 };
 
-export const checkName = async (req: Request, res: Response, next: NextFunction) => {
+export const checkName = (req: Request<object, object, {
+  name?: string;
+}>, res: Response, next: NextFunction) => {
   const newName = req.body.name;
   if (newName !== undefined) {
     if (typeof newName !== 'string' || newName.length < 2) {
@@ -94,7 +103,9 @@ export const checkName = async (req: Request, res: Response, next: NextFunction)
   return next();
 };
 
-export const checkStatus = async (req: Request, res: Response, next: NextFunction) => {
+export const checkStatus = (req: Request<object, object, {
+  status?: string;
+}>, res: Response, next: NextFunction) => {
   if (req.body.status) {
     if (!['setup', 'in progress', 'completed'].includes(req.body.status)) {
       console.log('Invalid game status');

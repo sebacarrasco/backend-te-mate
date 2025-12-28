@@ -28,7 +28,7 @@ describe('emailToLowerCase middleware', () => {
     it('should convert mixed case email to lowercase', () => {
       mockReq.body.email = 'TeSt@ExAmPlE.CoM';
 
-      emailToLowerCase(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      emailToLowerCase(mockReq as Request, mockRes as Response, mockNext);
 
       expect(mockReq.body.email).toBe('test@example.com');
       expect(mockNext).toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe('setCurrentUserURLToken middleware', () => {
       const mockUser = { id: 'test-user-id', active: false };
       (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
-      await setCurrentUserURLToken(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      await setCurrentUserURLToken(mockReq as Request<{ token: string }>, mockRes as Response, mockNext as NextFunction);
 
       expect(mockReq.orm!.User!.findByPk).toHaveBeenCalledWith('test-user-id');
       expect(mockReq.currentUser).toBe(mockUser);
@@ -132,7 +132,7 @@ describe('setCurrentUserURLToken middleware', () => {
     it('should redirect to invalid URL', async () => {
       mockReq.params = { token: 'invalid-token' };
 
-      await setCurrentUserURLToken(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      await setCurrentUserURLToken(mockReq as Request<{ token: string }>, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.redirect).toHaveBeenCalledWith('http://example.com/invalid');
       expect(mockNext).not.toHaveBeenCalled();
@@ -143,7 +143,7 @@ describe('setCurrentUserURLToken middleware', () => {
     it('should redirect to invalid URL', async () => {
       (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(null);
 
-      await setCurrentUserURLToken(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      await setCurrentUserURLToken(mockReq as Request<{ token: string }>, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.redirect).toHaveBeenCalledWith('http://example.com/invalid');
       expect(mockNext).not.toHaveBeenCalled();
@@ -155,7 +155,7 @@ describe('setCurrentUserURLToken middleware', () => {
       const mockUser = { id: 'test-user-id', active: true };
       (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
-      await setCurrentUserURLToken(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      await setCurrentUserURLToken(mockReq as Request<{ token: string }>, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.redirect).toHaveBeenCalledWith('http://example.com/invalid');
       expect(mockNext).not.toHaveBeenCalled();

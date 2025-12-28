@@ -55,6 +55,9 @@ describe('findChallenge middleware', () => {
         Challenge: {
           findByPk: jest.fn(),
         },
+        User: {
+          findByPk: jest.fn(),
+        },
       },
     };
     mockRes = createMockResponse();
@@ -65,11 +68,13 @@ describe('findChallenge middleware', () => {
     it('should set req.user, req.challenge and call next', async () => {
       const mockChallenge = { id: 'challenge-123', userId: 'owner-user-id' };
       (mockReq.orm!.Challenge!.findByPk as jest.Mock<any>).mockResolvedValue(mockChallenge);
+      const mockUser = { id: 'owner-user-id' };
+      (mockReq.orm!.User!.findByPk as jest.Mock<any>).mockResolvedValue(mockUser);
 
-      await findChallenge(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      await findChallenge(mockReq as Request<{ challengeId: string }>, mockRes as Response, mockNext as NextFunction);
 
       expect(mockReq.orm!.Challenge!.findByPk).toHaveBeenCalledWith('challenge-123');
-      expect(mockReq.user).toEqual({ id: 'owner-user-id' });
+      expect(mockReq.user).toEqual(mockUser);
       expect(mockReq.challenge).toBe(mockChallenge);
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
@@ -80,7 +85,7 @@ describe('findChallenge middleware', () => {
     it('should return 404 with challenge not found message', async () => {
       (mockReq.orm!.Challenge!.findByPk as jest.Mock<any>).mockResolvedValue(null);
 
-      await findChallenge(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      await findChallenge(mockReq as Request<{ challengeId: string }>, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.status).toHaveBeenCalledWith(404);
       expect(mockRes.send).toHaveBeenCalledWith({ message: 'Challenge not found' });

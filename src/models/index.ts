@@ -36,7 +36,7 @@ const models: Record<string, ModelStatic<any>> = {
 // Set up associations
 Object.values(models).forEach((model) => {
   if ('associate' in model && typeof (model as { associate?: unknown }).associate === 'function') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line
     (model as any).associate(models);
   }
 });

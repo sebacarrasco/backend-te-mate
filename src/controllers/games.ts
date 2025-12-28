@@ -10,7 +10,7 @@ import { assignChallenges } from '../utils/assign-challenges';
 import sendGameStartedEmail = require('../mailers/game-started');
 import '../types/express'; // Import for global type extension
 import {
-  AssignChallengesResult, ChallengeModel, GameModel, GameUserModel, UserModel,
+  AssignChallengesResult, ChallengeModel, GameUserModel, UserModel,
 } from '../types/models';
 import { mapGameResponse, mapParticipantResponse, mapUserResponse } from '../utils/mappers';
 
@@ -20,11 +20,11 @@ router.use(expressjwt({ secret: process.env.JWT_SECRET as string, algorithms: ['
 router.use(setCurrentUser);
 
 router.get('/', async (req: Request, res: Response) => {
-  console.log(`Fetching games for user ${req.currentUser!.id}`);
-  const gameUsers = await req.orm.GameUser.findAll({ where: { userId: req.currentUser!.id } });
+  console.log(`Fetching games for user ${req.currentUser.id}`);
+  const gameUsers = await req.orm.GameUser.findAll({ where: { userId: req.currentUser.id } });
   const games = await req.orm.Game.findAll({ where: { id: gameUsers.map((gu) => gu.gameId) } });
   const gameOwners = await req.orm.User.findAll({ where: { id: games.map((game) => game.ownerId) } });
-  console.log(`Found ${games.length} games for user ${req.currentUser!.id}`);
+  console.log(`Found ${games.length} games for user ${req.currentUser.id}`);
   return res.status(200).send({
     games: games.map((game) => mapGameResponse(
       game,
@@ -37,13 +37,13 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:gameId', [
   check('gameId', 'gameId must be an integer').isInt(),
   fieldValidator,
-], findGame, checkGameUser, async (req: Request, res: Response) => {
+], findGame, checkGameUser, async (req: Request<{gameId: string}, object, object>, res: Response) => {
   console.log(`Fetching game ${req.params.gameId} details`);
-  const game = req.game as GameModel;
+  const { game } = req;
   const gameUsers = await req.orm.GameUser.findAll({
-    where: { gameId: req.game!.id },
+    where: { gameId: game.id },
   });
-  const currentUserGameUser = gameUsers.find((gu) => gu.userId === req.currentUser!.id) as GameUserModel;
+  const currentUserGameUser = gameUsers.find((gu) => gu.userId === req.currentUser.id) as GameUserModel;
   const users = await req.orm.User.findAll({
     where: { id: gameUsers.map((gu) => gu.userId) },
   });
@@ -52,7 +52,7 @@ router.get('/:gameId', [
   });
   const owner = users.find((u) => u.id === game.ownerId) as UserModel;
   const assignedChallengeWithChallenge = await req.orm.AssignedChallenge.findOne({
-    where: { gameId: game.id, killerId: req.currentUser!.id },
+    where: { gameId: game.id, killerId: req.currentUser.id },
   });
   const challenge = assignedChallengeWithChallenge ? await req.orm.Challenge.findByPk(
     assignedChallengeWithChallenge.challengeId,
@@ -80,13 +80,16 @@ router.post('/', [
   check('name', 'name should be a string').isString(),
   check('name', 'name should be at least 2 characters long').isLength({ min: 2 }),
   fieldValidator,
-], findUsers, async (req: Request, res: Response) => {
-  console.log(`Creating game "${req.body.name}" with ${req.users!.length} users`);
+], findUsers, async (req: Request<object, object, {
+  userIds: string[];
+  name: string;
+}>, res: Response) => {
+  console.log(`Creating game "${req.body.name}" with ${req.users.length} users`);
   const game = await req.orm.Game.create({
-    ownerId: req.currentUser!.id,
+    ownerId: req.currentUser.id,
     name: req.body.name,
   });
-  await req.orm.GameUser.bulkCreate(req.users!.map((user) => ({
+  await req.orm.GameUser.bulkCreate(req.users.map((user) => ({
     userId: user.id,
     gameId: game.id,
     isAlive: true,
@@ -94,13 +97,13 @@ router.post('/', [
   })));
   await game.save();
   const currentUserGameUser = await req.orm.GameUser.findOne({
-    where: { gameId: game.id, userId: req.currentUser!.id },
+    where: { gameId: game.id, userId: req.currentUser.id },
   }) as GameUserModel;
 
   console.log(`Game ${game.id} created successfully`);
   return res.status(201).send({
     game: {
-      ...mapGameResponse(game, currentUserGameUser, req.currentUser!),
+      ...mapGameResponse(game, currentUserGameUser, req.currentUser),
     },
   });
 });
@@ -108,18 +111,18 @@ router.post('/', [
 router.patch('/:gameId', [
   check('gameId', 'gameId must be an integer').isInt(),
   fieldValidator,
-], findGame, checkOwner, checkGameParams, checkName, checkStatus, async (
-  req: Request,
-  res: Response,
-) => {
+], findGame, checkOwner, checkGameParams, checkName, checkStatus, async (req: Request<{gameId: string}, object, {
+    name: string;
+    status: string;
+  }>, res: Response) => {
   console.log(`Updating game ${req.params.gameId}`);
   let results: AssignChallengesResult | null = null;
-  req.game!.name = req.body.name || req.game!.name;
+  req.game.name = req.body.name || req.game.name;
   const gameUsers = await req.orm.GameUser.findAll({
-    where: { gameId: req.game!.id },
+    where: { gameId: req.game.id },
   });
-  if (req.game!.status === 'setup' && req.body.status === 'in progress') {
-    console.log(`Starting game ${req.game!.id} - assigning challenges`);
+  if (req.game.status === 'setup' && req.body.status === 'in progress') {
+    console.log(`Starting game ${req.game.id} - assigning challenges`);
     const availableChallenges = await req.orm.Challenge.findAll({
       where: { userId: gameUsers.map((gu) => gu.userId), selected: false },
     });
@@ -136,24 +139,24 @@ router.patch('/:gameId', [
       where: { id: gameUsers.map((gu) => gu.userId) },
       attributes: ['id', 'firstName', 'lastName', 'email'],
     });
-    results = await assignChallenges(req.orm, req.game!, users, challengesByUser);
-    req.game!.status = 'in progress';
-    console.log(`Game ${req.game!.id} started - challenges assigned to ${results.length} participants`);
+    results = await assignChallenges(req.orm, req.game, users, challengesByUser);
+    req.game.status = 'in progress';
+    console.log(`Game ${req.game.id} started - challenges assigned to ${results.length} participants`);
   }
-  await req.game!.save();
-  console.log(`Game ${req.game!.id} updated successfully`);
+  await req.game.save();
+  console.log(`Game ${req.game.id} updated successfully`);
   res.status(200).send({
     game: {
       ...mapGameResponse(
-        req.game!,
-        gameUsers.find((gu) => gu.userId === req.currentUser!.id) as GameUserModel,
-        req.currentUser!,
+        req.game,
+        gameUsers.find((gu) => gu.userId === req.currentUser.id) as GameUserModel,
+        req.currentUser,
       ),
     },
   });
   if (results) {
     return Promise.all(results.map(async (result) => {
-      await sendGameStartedEmail(req.game!, result.killer, result.victim, result.challengeDescription);
+      await sendGameStartedEmail(req.game, result.killer, result.victim, result.challengeDescription);
     }));
   }
   return null;
@@ -162,9 +165,9 @@ router.patch('/:gameId', [
 router.delete('/:gameId', [
   check('gameId', 'gameId must be an integer').isInt(),
   fieldValidator,
-], findGame, checkOwner, async (req: Request, res: Response) => {
+], findGame, checkOwner, async (req: Request<{gameId: string}, object, object>, res: Response) => {
   console.log(`Deleting game ${req.params.gameId}`);
-  await req.game!.destroy();
+  await req.game.destroy();
   console.log(`Game ${req.params.gameId} deleted successfully`);
   return res.status(204).send();
 });

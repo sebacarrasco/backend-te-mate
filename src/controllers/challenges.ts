@@ -16,13 +16,16 @@ router.post('/', [
   check('description', 'description should be a string').isString(),
   check('description', 'description should be at least 5 characters long').isLength({ min: 5 }),
   fieldValidator,
-], findUser, challengeOwnerNotCurrentUser, async (req: Request, res: Response) => {
-  console.log(`Creating challenge for user ${req.user!.id}`);
+], findUser, challengeOwnerNotCurrentUser, async (req: Request<object, object, {
+  userId: string;
+  description: string;
+}>, res: Response) => {
+  console.log(`Creating challenge for user ${req.user.id}`);
   const challenge = await req.orm.Challenge.create({
-    userId: req.user!.id,
+    userId: req.user.id,
     description: req.body.description,
   });
-  console.log(`Challenge ${challenge.id} created successfully for user ${req.user!.id}`);
+  console.log(`Challenge ${challenge.id} created successfully for user ${req.user.id}`);
   return res.status(201).send({ challenge });
 });
 
@@ -31,20 +34,24 @@ router.patch('/:challengeId', [
   check('description', 'description should be a string').isString(),
   check('description', 'description should be at least 5 characters long').isLength({ min: 5 }),
   fieldValidator,
-], findChallenge, challengeOwnerNotCurrentUser, async (req: Request, res: Response) => {
+], findChallenge, challengeOwnerNotCurrentUser, async (req: Request<{challengeId: string}, object, {
+  description: string;
+}>, res: Response) => {
   console.log(`Updating challenge ${req.params.challengeId}`);
-  req.challenge!.description = req.body.description;
-  await req.challenge!.save();
-  console.log(`Challenge ${req.challenge!.id} updated successfully`);
+  req.challenge.description = req.body.description;
+  await req.challenge.save();
+  console.log(`Challenge ${req.challenge.id} updated successfully`);
   return res.status(200).send({ challenge: req.challenge });
 });
 
 router.delete('/:challengeId', [
   check('challengeId', 'challengeId must be an integer').isInt(),
   fieldValidator,
-], findChallenge, challengeOwnerNotCurrentUser, async (req: Request, res: Response) => {
+], findChallenge, challengeOwnerNotCurrentUser, async (req: Request<{challengeId: string}, object, {
+  description: string;
+}>, res: Response) => {
   console.log(`Deleting challenge ${req.params.challengeId}`);
-  await req.challenge!.destroy();
+  await req.challenge.destroy();
   console.log(`Challenge ${req.params.challengeId} deleted successfully`);
   return res.status(204).send();
 });

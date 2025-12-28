@@ -210,8 +210,8 @@ describe('checkOwner middleware', () => {
   });
 
   describe('when user is the owner', () => {
-    it('should call next', async () => {
-      await checkOwner(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+    it('should call next', () => {
+      checkOwner(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
@@ -219,10 +219,10 @@ describe('checkOwner middleware', () => {
   });
 
   describe('when user is not the owner', () => {
-    it('should return 403 with access denied message', async () => {
+    it('should return 403 with access denied message', () => {
       mockReq.currentUser = { id: 'other-user-id' };
 
-      await checkOwner(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      checkOwner(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.status).toHaveBeenCalledWith(403);
       expect(mockRes.send).toHaveBeenCalledWith({
@@ -302,8 +302,8 @@ describe('checkName middleware', () => {
   });
 
   describe('when name is undefined', () => {
-    it('should call next', async () => {
-      await checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+    it('should call next', () => {
+      checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
@@ -311,10 +311,10 @@ describe('checkName middleware', () => {
   });
 
   describe('when name is a valid string', () => {
-    it('should call next', async () => {
+    it('should call next', () => {
       mockReq.body.name = 'Valid Name';
 
-      await checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
@@ -322,10 +322,10 @@ describe('checkName middleware', () => {
   });
 
   describe('when name is too short', () => {
-    it('should return 400 with error message', async () => {
+    it('should return 400 with error message', () => {
       mockReq.body.name = 'A';
 
-      await checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.send).toHaveBeenCalledWith({
@@ -343,10 +343,10 @@ describe('checkName middleware', () => {
   });
 
   describe('when name is not a string', () => {
-    it('should return 400 with error message', async () => {
+    it('should return 400 with error message', () => {
       mockReq.body.name = 123;
 
-      await checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      checkName(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.send).toHaveBeenCalledWith({
@@ -378,8 +378,8 @@ describe('checkStatus middleware', () => {
   });
 
   describe('when status is not provided', () => {
-    it('should call next', async () => {
-      await checkStatus(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+    it('should call next', () => {
+      checkStatus(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
@@ -387,10 +387,10 @@ describe('checkStatus middleware', () => {
   });
 
   describe('when status is valid', () => {
-    it.each(['setup', 'in progress', 'completed'])('should call next for status "%s"', async (status) => {
+    it.each(['setup', 'in progress', 'completed'])('should call next for status "%s"', (status) => {
       mockReq.body.status = status;
 
-      await checkStatus(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      checkStatus(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockNext).toHaveBeenCalled();
       expect(mockRes.status).not.toHaveBeenCalled();
@@ -398,10 +398,10 @@ describe('checkStatus middleware', () => {
   });
 
   describe('when status is invalid', () => {
-    it('should return 400 with error message', async () => {
+    it('should return 400 with error message', () => {
       mockReq.body.status = 'invalid-status';
 
-      await checkStatus(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+      checkStatus(mockReq as Request, mockRes as Response, mockNext as NextFunction);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.send).toHaveBeenCalledWith({
