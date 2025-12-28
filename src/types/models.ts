@@ -132,19 +132,10 @@ export interface GameParticipantWithAssociations extends UserAttributes {
   Participant: ParticipantModel;
   Challenges: ChallengeModel[];
 }
-
-export interface GameWithParticipants extends GameAttributes {
-  participants: GameParticipantWithAssociations[];
-  owner?: UserModel;
-  toJSON(): GameAttributes & { participants?: GameParticipantWithAssociations[] };
-  save(): Promise<void>;
-  destroy(): Promise<void>;
-}
-
 export interface EmailInfo {
-  killer: GameParticipantWithAssociations;
-  participant: GameParticipantWithAssociations;
+  killer: UserModel;
+  victim: UserModel;
   challengeDescription: string;
 }
 
-export type AssignChallengesResult = [boolean, EmailInfo[] | Record<string, never>];
+export type AssignChallengesResult = EmailInfo[];

@@ -1,5 +1,5 @@
 import { ORM } from './orm';
-import { UserModel, ChallengeModel, GameWithParticipants } from './models';
+import { UserModel, ChallengeModel, GameModel } from './models';
 
 // Extend Express Request globally with custom properties
 declare global {
@@ -10,9 +10,8 @@ declare global {
       currentUser?: UserModel;
       user?: UserModel | { id: string };
       users?: UserModel[];
-      game?: GameWithParticipants;
+      game?: GameModel;
       challenge?: ChallengeModel;
-      victimUser?: UserModel;
     }
   }
 }

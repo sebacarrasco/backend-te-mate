@@ -59,6 +59,7 @@ export interface ORM {
     findByPk(id: number | string, options?: object): Promise<ChallengeModel | null>;
     findAll(options?: object): Promise<ChallengeModel[]>;
     create(values: Partial<ChallengeAttributes>): Promise<ChallengeModel>;
+    update(values: Partial<ChallengeAttributes>, options: object): Promise<[number, ChallengeModel[]]>;
     destroy(options: ModelDestroyOptions): Promise<number>;
   };
   AssignedChallenge: {
@@ -66,6 +67,7 @@ export interface ORM {
     findByPk(id: number, options?: object): Promise<AssignedChallengeModel | null>;
     findAll(options?: object): Promise<AssignedChallengeModel[]>;
     create(values: Partial<AssignedChallengeAttributes>): Promise<AssignedChallengeModel>;
+    bulkCreate(values: Partial<AssignedChallengeAttributes>[]): Promise<AssignedChallengeModel[]>;
     destroy(options: ModelDestroyOptions): Promise<number>;
   };
   sequelize: Sequelize;
