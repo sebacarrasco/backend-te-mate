@@ -903,3 +903,226 @@ describe('DELETE /games/:gameId', () => {
     });
   });
 });
+
+describe('POST /games/:gameId/users/:userId/kill', () => {
+  let app: ReturnType<typeof createApp>;
+  let currentUser: UserModel;
+  let otherUser: UserModel;
+  let thirdUser: UserModel;
+  let otherUserGameUser: GameUserModel;
+  let thirdUserGameUser: GameUserModel;
+  let currentUserAssignedChallenge: AssignedChallengeModel;
+  let otherUserAssignedChallenge: AssignedChallengeModel;
+  let thirdUserAssignedChallenge: AssignedChallengeModel;
+  let authToken: string;
+  let game: GameModel;
+
+  beforeAll(() => {
+    app = createApp();
+  });
+
+  beforeEach(async () => {
+    await orm.Challenge.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.GameUser.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.Game.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.User.destroy({ where: {}, truncate: true, cascade: true });
+    await orm.AssignedChallenge.destroy({ where: {}, truncate: true, cascade: true });
+
+    currentUser = await orm.User.create({
+      firstName: 'Current',
+      lastName: 'User',
+      email: 'current@example.com',
+      password: 'password123',
+      active: true,
+    });
+    otherUser = await orm.User.create({
+      firstName: 'Other',
+      lastName: 'User',
+      email: 'other@example.com',
+      password: 'password123',
+      active: true,
+    });
+    thirdUser = await orm.User.create({
+      firstName: 'Third',
+      lastName: 'User',
+      email: 'third@example.com',
+      password: 'password123',
+      active: true,
+    });
+
+    game = await orm.Game.create({
+      name: 'Test Game',
+      status: 'in progress',
+      ownerId: currentUser.id,
+    });
+
+    await orm.GameUser.create({ gameId: game.id, userId: currentUser.id });
+    otherUserGameUser = await orm.GameUser.create({ gameId: game.id, userId: otherUser.id });
+    thirdUserGameUser = await orm.GameUser.create({ gameId: game.id, userId: thirdUser.id });
+
+    const challengeForCurrentUser = await orm.Challenge.create({ userId: currentUser.id, description: 'Challenge 1', selected: false });
+    const challengeForOtherUser = await orm.Challenge.create({ userId: otherUser.id, description: 'Challenge 2', selected: false });
+    const challengeForThirdUser = await orm.Challenge.create({ userId: thirdUser.id, description: 'Challenge 3', selected: false });
+
+    currentUserAssignedChallenge = await orm.AssignedChallenge.create({
+      gameId: game.id,
+      killerId: currentUser.id,
+      victimId: otherUser.id,
+      challengeId: challengeForCurrentUser.id,
+    });
+    otherUserAssignedChallenge = await orm.AssignedChallenge.create({
+      gameId: game.id,
+      killerId: otherUser.id,
+      victimId: thirdUser.id,
+      challengeId: challengeForOtherUser.id,
+    });
+    thirdUserAssignedChallenge = await orm.AssignedChallenge.create({
+      gameId: game.id,
+      killerId: thirdUser.id,
+      victimId: currentUser.id,
+      challengeId: challengeForThirdUser.id,
+    });
+  });
+
+  describe('with valid request when game is not completed', () => {
+    it('should return 200 update game users and kill the user', async () => {
+      authToken = generateToken(currentUser.id);
+      const response: SuperTestResponse<{ message: string }> = await request(app)
+        .post(`/games/${game.id}/users/${thirdUser.id}/kill`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('User killed successfully');
+
+      // Verify game users were updated
+      await thirdUserGameUser.reload();
+      expect(thirdUserGameUser.isAlive).toBe(false);
+
+      await otherUserGameUser.reload();
+      expect(otherUserGameUser.kills).toBe(1);
+
+      // Verify killer user was updated
+      await otherUser.reload();
+      expect(otherUser.kills).toBe(1);
+    });
+
+    it('should update challenges and create a new assigned challenge', async () => {
+      authToken = generateToken(currentUser.id);
+      await request(app)
+        .post(`/games/${game.id}/users/${thirdUser.id}/kill`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      // verify the challenge were the victim was killed is completed
+      await otherUserAssignedChallenge.reload();
+      expect(otherUserAssignedChallenge.isCompleted).toBe(true);
+      expect(otherUserAssignedChallenge.isCancelled).toBe(false);
+
+      // verify the challenge where the victim was the killer is cancelled
+      await thirdUserAssignedChallenge.reload();
+      expect(thirdUserAssignedChallenge.isCompleted).toBe(false);
+      expect(thirdUserAssignedChallenge.isCancelled).toBe(true);
+
+      // verify the new assigned challenge was created
+      const newAssignedChallenge = await orm.AssignedChallenge.findOne({
+        where: {
+          gameId: game.id,
+          killerId: otherUser.id,
+          victimId: currentUser.id,
+          challengeId: thirdUserAssignedChallenge.challengeId,
+          isCompleted: false,
+          isCancelled: false,
+        },
+      });
+      expect(newAssignedChallenge).not.toBeNull();
+    });
+  });
+
+  describe('with valid request when game is to be completed', () => {
+    let newAssignedChallengeWhereVictimWasKiller: AssignedChallengeModel;
+    beforeEach(async () => {
+      // Simulate that third user killed current user.
+      thirdUserAssignedChallenge.isCompleted = true;
+      await thirdUserAssignedChallenge.save();
+
+      currentUserAssignedChallenge.isCancelled = true;
+      await currentUserAssignedChallenge.save();
+
+      newAssignedChallengeWhereVictimWasKiller = await orm.AssignedChallenge.create({
+        gameId: game.id,
+        killerId: thirdUser.id,
+        victimId: otherUser.id,
+        challengeId: currentUserAssignedChallenge.challengeId,
+      });
+    });
+
+    it('should return 200 update game users and kill the user', async () => {
+      authToken = generateToken(currentUser.id);
+      const response: SuperTestResponse<{ message: string }> = await request(app)
+        .post(`/games/${game.id}/users/${thirdUser.id}/kill`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('User killed successfully');
+
+      // Verify game users were updated
+      await thirdUserGameUser.reload();
+      expect(thirdUserGameUser.isAlive).toBe(false);
+
+      await otherUserGameUser.reload();
+      expect(otherUserGameUser.kills).toBe(1);
+
+      // Verify killer user was updated
+      await otherUser.reload();
+      expect(otherUser.kills).toBe(1);
+    });
+
+    it('should update the challenges and complete the game', async () => {
+      authToken = generateToken(currentUser.id);
+      await request(app)
+        .post(`/games/${game.id}/users/${thirdUser.id}/kill`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      // verify the challenge were the victim was killed is completed
+      await otherUserAssignedChallenge.reload();
+      expect(otherUserAssignedChallenge.isCompleted).toBe(true);
+      expect(otherUserAssignedChallenge.isCancelled).toBe(false);
+
+      // verify the challenge where the victim was the killer is cancelled
+      await newAssignedChallengeWhereVictimWasKiller.reload();
+      expect(newAssignedChallengeWhereVictimWasKiller.isCompleted).toBe(false);
+      expect(newAssignedChallengeWhereVictimWasKiller.isCancelled).toBe(true);
+
+      // verify no new assigned challenge was created
+      const assignedChallenges = await orm.AssignedChallenge.findAll({
+        where: { gameId: game.id, isCompleted: false, isCancelled: false },
+      });
+      expect(assignedChallenges).toHaveLength(0);
+
+      // verify the game is completed
+      await game.reload();
+      expect(game.status).toBe('completed');
+    });
+  });
+
+  describe('when user is not the owner', () => {
+    it('should return 403', async () => {
+      authToken = generateToken(otherUser.id);
+      const response: SuperTestResponse<{ message: string }> = await request(app)
+        .post(`/games/${game.id}/users/${thirdUser.id}/kill`)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(response.status).toBe(403);
+      expect(response.body.message).toBe('Access denied: you cannot modify a game unless you own it');
+    });
+  });
+
+  describe('when game is not found', () => {
+    it('should return 404', async () => {
+      authToken = generateToken(currentUser.id);
+      const response: SuperTestResponse<{ message: string }> = await request(app)
+        .post('/games/999999/users/123e4567-e89b-12d3-a456-426614174000/kill')
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe('Game not found');
+    });
+  });
+});

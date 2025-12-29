@@ -13,6 +13,7 @@ import {
   AssignChallengesResult, ChallengeModel, GameUserModel, UserModel,
 } from '../types/models';
 import { mapGameResponse, mapParticipantResponse, mapUserResponse } from '../utils/mappers';
+import { killUser } from '../business/game';
 
 const router = express.Router();
 
@@ -51,14 +52,19 @@ router.get('/:gameId', [
     where: { userId: users.map((u) => u.id), selected: false },
   });
   const owner = users.find((u) => u.id === game.ownerId) as UserModel;
-  const assignedChallengeWithChallenge = await req.orm.AssignedChallenge.findOne({
-    where: { gameId: game.id, killerId: req.currentUser.id },
+  const assignedChallenge = await req.orm.AssignedChallenge.findOne({
+    where: {
+      gameId: game.id,
+      killerId: req.currentUser.id,
+      isCompleted: false,
+      isCancelled: false,
+    },
   });
-  const challenge = assignedChallengeWithChallenge ? await req.orm.Challenge.findByPk(
-    assignedChallengeWithChallenge.challengeId,
+  const challenge = assignedChallenge ? await req.orm.Challenge.findByPk(
+    assignedChallenge.challengeId,
   ) as ChallengeModel : null;
-  const victim = assignedChallengeWithChallenge ? users.find(
-    (u) => u.id === assignedChallengeWithChallenge.victimId,
+  const victim = assignedChallenge ? users.find(
+    (u) => u.id === assignedChallenge.victimId,
   ) as UserModel : null;
   return res.status(200).send({
     game: {
@@ -170,6 +176,18 @@ router.delete('/:gameId', [
   await req.game.destroy();
   console.log(`Game ${req.params.gameId} deleted successfully`);
   return res.status(204).send();
+});
+
+router.post('/:gameId/users/:userId/kill', [
+  check('gameId', 'gameId must be an integer').isInt(),
+  check('userId', 'userId must be an uuid').isUUID(),
+  fieldValidator,
+], findGame, checkOwner, async (req: Request<{gameId: string, userId: string}, object, object>, res: Response) => {
+  console.log(`Killing user ${req.params.userId} in game ${req.params.gameId}`);
+  await killUser(req.orm, req.params.userId, req.game);
+  return res.status(200).send({
+    message: 'User killed successfully',
+  });
 });
 
 export = router;
