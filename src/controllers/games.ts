@@ -13,6 +13,7 @@ import {
   AssignChallengesResult, ChallengeModel, GameUserModel, UserModel,
 } from '../types/models';
 import { mapGameResponse, mapParticipantResponse, mapUserResponse } from '../utils/mappers';
+import { killUser } from '../business/game';
 
 const router = express.Router();
 
@@ -170,6 +171,18 @@ router.delete('/:gameId', [
   await req.game.destroy();
   console.log(`Game ${req.params.gameId} deleted successfully`);
   return res.status(204).send();
+});
+
+router.post('/:gameId/users/:userId/kill', [
+  check('gameId', 'gameId must be an integer').isInt(),
+  check('userId', 'userId must be an uuid').isUUID(),
+  fieldValidator,
+], findGame, checkOwner, async (req: Request<{gameId: string, userId: string}, object, object>, res: Response) => {
+  console.log(`Killing user ${req.params.userId} in game ${req.params.gameId}`);
+  await killUser(req.orm, req.params.userId, req.game);
+  return res.status(200).send({
+    message: 'User killed successfully',
+  });
 });
 
 export = router;
