@@ -52,14 +52,19 @@ router.get('/:gameId', [
     where: { userId: users.map((u) => u.id), selected: false },
   });
   const owner = users.find((u) => u.id === game.ownerId) as UserModel;
-  const assignedChallengeWithChallenge = await req.orm.AssignedChallenge.findOne({
-    where: { gameId: game.id, killerId: req.currentUser.id },
+  const assignedChallenge = await req.orm.AssignedChallenge.findOne({
+    where: {
+      gameId: game.id,
+      killerId: req.currentUser.id,
+      isCompleted: false,
+      isCancelled: false,
+    },
   });
-  const challenge = assignedChallengeWithChallenge ? await req.orm.Challenge.findByPk(
-    assignedChallengeWithChallenge.challengeId,
+  const challenge = assignedChallenge ? await req.orm.Challenge.findByPk(
+    assignedChallenge.challengeId,
   ) as ChallengeModel : null;
-  const victim = assignedChallengeWithChallenge ? users.find(
-    (u) => u.id === assignedChallengeWithChallenge.victimId,
+  const victim = assignedChallenge ? users.find(
+    (u) => u.id === assignedChallenge.victimId,
   ) as UserModel : null;
   return res.status(200).send({
     game: {
