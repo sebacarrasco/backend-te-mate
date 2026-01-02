@@ -4,7 +4,7 @@ import { check } from 'express-validator';
 import { setCurrentUser } from '../middlewares/auth';
 import { fieldValidator } from '../middlewares/field-validator';
 import {
-  findUsers, findGame, checkOwner, checkName, checkGameParams, checkStatus, checkGameUser,
+  findUsers, findGame, checkOwner, checkName, checkGameParams, checkStatus, checkGameUser, checkDeadGameUser,
 } from '../middlewares/games';
 import { assignChallenges } from '../utils/assign-challenges';
 import sendGameStartedEmail = require('../mailers/game-started');
@@ -13,7 +13,7 @@ import {
   AssignChallengesResult, ChallengeModel, GameUserModel, UserModel,
 } from '../types/models';
 import { mapGameResponse, mapParticipantResponse, mapUserResponse } from '../utils/mappers';
-import { getCompletedAssignedChallenges, killUser } from '../business/game';
+import { getCompletedAssignedChallenges, getOngoingAssignedChallenges, killUser } from '../business/game';
 
 const router = express.Router();
 
@@ -197,6 +197,18 @@ router.get('/:gameId/assigned-challenges/completed', [
   console.log(`Fetching completed assigned challenges for game ${req.params.gameId}`);
   const assignedChallenges = await getCompletedAssignedChallenges(req.orm, req.game);
   console.log(`Found ${assignedChallenges.length} completed assigned challenges for game ${req.params.gameId}`);
+  return res.status(200).send({
+    assignedChallenges,
+  });
+});
+
+router.get('/:gameId/assigned-challenges/ongoing', [
+  check('gameId', 'gameId must be an integer').isInt(),
+  fieldValidator,
+], findGame, checkDeadGameUser, async (req: Request<{gameId: string}, object, object>, res: Response) => {
+  console.log(`Fetching ongoing assigned challenges for game ${req.params.gameId}`);
+  const assignedChallenges = await getOngoingAssignedChallenges(req.orm, req.game);
+  console.log(`Found ${assignedChallenges.length} ongoing assigned challenges for game ${req.params.gameId}`);
   return res.status(200).send({
     assignedChallenges,
   });

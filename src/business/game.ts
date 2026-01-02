@@ -74,11 +74,20 @@ export const killUser = async (orm: ORM, userId: string, game: GameModel) => {
   `);
 };
 
-export const getCompletedAssignedChallenges = async (orm: ORM, game: GameModel) => {
+interface AssignedChallengeFilter {
+  isCompleted: boolean;
+  isCancelled: boolean;
+}
+
+const getAssignedChallenges = async (
+  orm: ORM,
+  game: GameModel,
+  filter: AssignedChallengeFilter,
+) => {
   const assignedChallenges = await orm.AssignedChallenge.findAll({
     where: {
       gameId: game.id,
-      isCompleted: true,
+      ...filter,
     },
     order: [['updatedAt', 'DESC']],
   });
@@ -105,3 +114,11 @@ export const getCompletedAssignedChallenges = async (orm: ORM, game: GameModel) 
     return mapAssignedChallengeResponse(ac, challenge, killer, victim);
   });
 };
+
+export const getCompletedAssignedChallenges = async (orm: ORM, game: GameModel) => (
+  getAssignedChallenges(orm, game, { isCompleted: true, isCancelled: false })
+);
+
+export const getOngoingAssignedChallenges = async (orm: ORM, game: GameModel) => (
+  getAssignedChallenges(orm, game, { isCompleted: false, isCancelled: false })
+);
