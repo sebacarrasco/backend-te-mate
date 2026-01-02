@@ -52,6 +52,21 @@ export const checkGameUser = async (req: Request, res: Response, next: NextFunct
   return next();
 };
 
+export const checkDeadGameUser = async (req: Request, res: Response, next: NextFunction) => {
+  const gameUser = await req.orm.GameUser.findOne({
+    where: { gameId: req.game.id, userId: req.currentUser.id },
+  });
+  if (!gameUser) {
+    console.log(`User ${req.currentUser.id} is not a game user of game ${req.game.id}`);
+    return res.status(401).send({ message: 'You are not part of this game' });
+  }
+  if (gameUser.isAlive) {
+    console.log(`User ${req.currentUser.id} is still alive in game ${req.game.id}`);
+    return res.status(403).send({ message: 'Alive users cannot access this resource' });
+  }
+  return next();
+};
+
 export const checkOwner = (req: Request, res: Response, next: NextFunction) => {
   if (req.game.ownerId !== req.currentUser.id) {
     console.log(`User ${req.currentUser.id} does not own game (owner: ${req.game.ownerId})`);

@@ -11,6 +11,7 @@ import {
   checkName,
   checkStatus,
   checkGameUser,
+  checkDeadGameUser,
 } from '../../../src/middlewares/games';
 import { MockRequest, MockResponse, createMockResponse } from '../../types';
 
@@ -190,6 +191,79 @@ describe('checkGameUser middleware', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.send).toHaveBeenCalledWith({ message: 'You are not part of this game' });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('checkDeadGameUser middleware', () => {
+  let mockReq: MockRequest;
+  let mockRes: MockResponse;
+  let mockNext: jest.Mock;
+
+  beforeEach(() => {
+    mockReq = {
+      currentUser: { id: 'current-user-id' },
+      game: { id: 123 },
+      orm: {
+        GameUser: {
+          findOne: jest.fn(),
+        },
+      },
+    };
+    mockRes = createMockResponse();
+    mockNext = jest.fn();
+  });
+
+  describe('when game user is not found', () => {
+    it('should return 401 with not part of game message', async () => {
+      (mockReq.orm!.GameUser!.findOne as jest.Mock<any>).mockResolvedValue(null);
+
+      await checkDeadGameUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+
+      expect(mockReq.orm!.GameUser!.findOne).toHaveBeenCalledWith({
+        where: { gameId: 123, userId: 'current-user-id' },
+      });
+      expect(mockRes.status).toHaveBeenCalledWith(401);
+      expect(mockRes.send).toHaveBeenCalledWith({ message: 'You are not part of this game' });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when game user is found and is dead', () => {
+    it('should call next', async () => {
+      const mockGameUser = {
+        id: 1234,
+        gameId: 123,
+        userId: 'current-user-id',
+        isAlive: false,
+      };
+      (mockReq.orm!.GameUser!.findOne as jest.Mock<any>).mockResolvedValue(mockGameUser);
+
+      await checkDeadGameUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+
+      expect(mockReq.orm!.GameUser!.findOne).toHaveBeenCalledWith({
+        where: { gameId: 123, userId: 'current-user-id' },
+      });
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockRes.status).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when game user is found but is alive', () => {
+    it('should return 403 with alive users cannot access message', async () => {
+      const mockGameUser = {
+        id: 1234,
+        gameId: 123,
+        userId: 'current-user-id',
+        isAlive: true,
+      };
+      (mockReq.orm!.GameUser!.findOne as jest.Mock<any>).mockResolvedValue(mockGameUser);
+
+      await checkDeadGameUser(mockReq as Request, mockRes as Response, mockNext as NextFunction);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expect(mockRes.send).toHaveBeenCalledWith({ message: 'Alive users cannot access this resource' });
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
