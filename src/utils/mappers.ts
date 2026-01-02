@@ -1,4 +1,6 @@
-import { GameModel, GameUserModel, UserModel } from '../types/models';
+import {
+  AssignedChallengeModel, ChallengeModel, GameModel, GameUserModel, UserModel,
+} from '../types/models';
 
 const mapGameResponse = (game: GameModel, gameUser: GameUserModel, owner: UserModel) => ({
   id: game.id,
@@ -31,4 +33,25 @@ const mapUserResponse = (user: UserModel) => ({
   active: user.active,
 });
 
-export { mapGameResponse, mapParticipantResponse, mapUserResponse };
+const mapAssignedChallengeResponse = (
+  assignedChallenge: AssignedChallengeModel,
+  challenge: ChallengeModel,
+  killer: UserModel,
+  victim: UserModel,
+) => ({
+  id: assignedChallenge.id,
+  isCompleted: assignedChallenge.isCompleted,
+  isCancelled: assignedChallenge.isCancelled,
+  createdAt: assignedChallenge.createdAt,
+  updatedAt: assignedChallenge.updatedAt,
+  challenge: {
+    id: challenge.id,
+    description: challenge.description,
+  },
+  killer: mapUserResponse(killer),
+  victim: mapUserResponse(victim),
+});
+
+export {
+  mapGameResponse, mapParticipantResponse, mapUserResponse, mapAssignedChallengeResponse,
+};

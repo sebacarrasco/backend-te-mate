@@ -1,7 +1,8 @@
 import {
-  AssignedChallengeModel, GameModel, GameUserModel, UserModel,
+  AssignedChallengeModel, ChallengeModel, GameModel, GameUserModel, UserModel,
 } from '../types/models';
 import { ORM } from '../types/orm';
+import { mapAssignedChallengeResponse } from '../utils/mappers';
 
 export const killUser = async (orm: ORM, userId: string, game: GameModel) => {
   // Complete challenge where the victim was killed
@@ -71,4 +72,36 @@ export const killUser = async (orm: ORM, userId: string, game: GameModel) => {
     based on challenge ${challengeWhereVictimWasKiller.id}
     for victim ${challengeWhereVictimWasKiller.victimId}
   `);
+};
+
+export const getCompletedAssignedChallenges = async (orm: ORM, game: GameModel) => {
+  const assignedChallenges = await orm.AssignedChallenge.findAll({
+    where: {
+      gameId: game.id,
+      isCompleted: true,
+    },
+    order: [['updatedAt', 'DESC']],
+  });
+
+  const challengeIds = assignedChallenges.map((ac) => ac.challengeId);
+  const userIds = [
+    ...new Set([
+      ...assignedChallenges.map((ac) => ac.killerId),
+      ...assignedChallenges.map((ac) => ac.victimId),
+    ]),
+  ];
+
+  const challenges = await orm.Challenge.findAll({
+    where: { id: challengeIds },
+  });
+  const users = await orm.User.findAll({
+    where: { id: userIds },
+  });
+
+  return assignedChallenges.map((ac) => {
+    const challenge = challenges.find((c) => c.id === ac.challengeId) as ChallengeModel;
+    const killer = users.find((u) => u.id === ac.killerId) as UserModel;
+    const victim = users.find((u) => u.id === ac.victimId) as UserModel;
+    return mapAssignedChallengeResponse(ac, challenge, killer, victim);
+  });
 };
