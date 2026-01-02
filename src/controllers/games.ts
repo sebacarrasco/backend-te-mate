@@ -13,7 +13,7 @@ import {
   AssignChallengesResult, ChallengeModel, GameUserModel, UserModel,
 } from '../types/models';
 import { mapGameResponse, mapParticipantResponse, mapUserResponse } from '../utils/mappers';
-import { killUser } from '../business/game';
+import { getCompletedAssignedChallenges, killUser } from '../business/game';
 
 const router = express.Router();
 
@@ -187,6 +187,18 @@ router.post('/:gameId/users/:userId/kill', [
   await killUser(req.orm, req.params.userId, req.game);
   return res.status(200).send({
     message: 'User killed successfully',
+  });
+});
+
+router.get('/:gameId/assigned-challenges/completed', [
+  check('gameId', 'gameId must be an integer').isInt(),
+  fieldValidator,
+], findGame, checkGameUser, async (req: Request<{gameId: string}, object, object>, res: Response) => {
+  console.log(`Fetching completed assigned challenges for game ${req.params.gameId}`);
+  const assignedChallenges = await getCompletedAssignedChallenges(req.orm, req.game);
+  console.log(`Found ${assignedChallenges.length} completed assigned challenges for game ${req.params.gameId}`);
+  return res.status(200).send({
+    assignedChallenges,
   });
 });
 
