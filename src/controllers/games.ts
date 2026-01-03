@@ -23,7 +23,10 @@ router.use(setCurrentUser);
 router.get('/', async (req: Request, res: Response) => {
   console.log(`Fetching games for user ${req.currentUser.id}`);
   const gameUsers = await req.orm.GameUser.findAll({ where: { userId: req.currentUser.id } });
-  const games = await req.orm.Game.findAll({ where: { id: gameUsers.map((gu) => gu.gameId) } });
+  const games = await req.orm.Game.findAll({
+    where: { id: gameUsers.map((gu) => gu.gameId) },
+    order: [['createdAt', 'DESC']],
+  });
   const gameOwners = await req.orm.User.findAll({ where: { id: games.map((game) => game.ownerId) } });
   console.log(`Found ${games.length} games for user ${req.currentUser.id}`);
   return res.status(200).send({
